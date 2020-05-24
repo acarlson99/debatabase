@@ -14,8 +14,8 @@ type DB struct {
 }
 
 // DBConnect creates connection to database with credentials
-func DBConnect(uname, password, dbname, sslmode string) (*DB, error) {
-	log.Print("Connecting to database...")
+func DBConnect(uname, password, dbname string) (*DB, error) {
+	log.Println("Connecting to database...")
 	connStr := fmt.Sprintf("%s:%s@/%s", uname, password, dbname)
 	db, err := sql.Open("mysql", connStr)
 	if err != nil {
@@ -31,9 +31,9 @@ func DBConnect(uname, password, dbname, sslmode string) (*DB, error) {
 // Init things
 func (db *DB) Init() {
 	// check if `articles` exists
-	fmt.Println("Initializing database...")
+	log.Println("Initializing database...")
 	if !db.tableExists("articles") {
-		fmt.Println("Creating `articles` table...")
+		log.Println("Creating `articles` table...")
 		_, err := db.Exec("CREATE TABLE articles( ID INT AUTO_INCREMENT, URL VARCHAR(512) NOT NULL, PRIMARY KEY (ID) );")
 		if err != nil {
 			log.Fatal(err)
@@ -41,7 +41,7 @@ func (db *DB) Init() {
 	}
 	// check if `tags` exists
 	if !db.tableExists("tags") {
-		fmt.Println("Creating `tags` table...")
+		log.Println("Creating `tags` table...")
 		_, err := db.Exec("CREATE TABLE tags( ID INT AUTO_INCREMENT, Name VARCHAR(16) UNIQUE, Description VARCHAR(256), PRIMARY KEY (ID, Name) );")
 		if err != nil {
 			log.Fatal(err)
@@ -49,7 +49,7 @@ func (db *DB) Init() {
 	}
 	// check if `article_to_tag` exists
 	if !db.tableExists("article_to_tag") {
-		fmt.Println("Creating `article_to_tag` table...")
+		log.Println("Creating `article_to_tag` table...")
 		_, err := db.Exec("CREATE TABLE article_to_tag( ArticleID INT, TagID INT, PRIMARY KEY (ArticleID, TagID) );")
 		if err != nil {
 			log.Fatal(err)
@@ -79,9 +79,9 @@ func printRows(rows *sql.Rows) {
 		var line string
 		err := rows.Scan(&line)
 		if err != nil {
-			fmt.Println("ERROR", err)
+			log.Println("ERROR", err)
 		}
-		fmt.Println(line)
+		log.Println(line)
 	}
 }
 

@@ -1,51 +1,36 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	router := mux.NewRouter()
-	fmt.Println(router)
+	if os.Getenv("APP_ENV") == "dev" {
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatal("Error loading .env file")
+		}
+	}
 
-	db, err := DBConnect("root", "password", "radancomDB", "disable")
+	uname := os.Getenv("MYSQL_USER")
+	passwd := os.Getenv("MYSQL_PASSWORD")
+
+	db, err := DBConnect(uname, passwd, "radancomDB")
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	rows, err := db.Query("SHOW TABLES;")
-	if err != nil {
-		log.Fatal(err)
-	}
-	printRows(rows)
-	rows.Close()
 
 	db.Init()
-	// db.populate()
 
-	rows, err = db.Query("SHOW TABLES;")
-	if err != nil {
-		log.Fatal(err)
-	}
-	printRows(rows)
-	rows.Close()
+	router := mux.NewRouter()
+	addr := os.Getenv("HOST_ADDRESS")
+	port := os.Getenv("HOST_PORT")
 
-	rows, err = db.Query("SELECT * FROM articles")
-	if err != nil {
-		log.Fatal(err)
-	}
-	for rows.Next() {
-		var a string
-		var b string
-		// var c sql.NullString
-		err := rows.Scan(&a, &b)
-		if err != nil {
-			fmt.Println("ERROR", err)
-		}
-		fmt.Println(a, b)
-	}
-	rows.Close()
+	log.Println("Listening and serving `" + addr + ":" + port + "`...")
+	http.ListenAndServe(addr+":"+port, router)
 }
