@@ -34,7 +34,7 @@ func (db *DB) Init() {
 	fmt.Println("Initializing database...")
 	if !db.tableExists("articles") {
 		fmt.Println("DB creating table `articles`...")
-		_, err := db.Exec("CREATE TABLE articles( ID INT AUTO_INCREMENT, URL VARCHAR(512) NOT NULL, PRIMARY KEY (ID) );")
+		_, err := db.Exec("CREATE TABLE articles( ID INT AUTO_INCREMENT, Name VARCHAR(512), URL VARCHAR(512) NOT NULL, PRIMARY KEY (ID) );")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -88,23 +88,24 @@ func printRows(rows *sql.Rows) {
 /*
 
 create articles table
-CREATE TABLE articles( ID INT AUTO_INCREMENT, URL VARCHAR(512) NOT NULL, PRIMARY KEY (ID) );
+CREATE TABLE articles( ID INT AUTO_INCREMENT, Name VARCHAR(512), URL VARCHAR(512) NOT NULL, PRIMARY KEY (ID) );
 
-MariaDB [radancomDB]> DESCRIBE articles;
+MariaDB [praxisDB]> DESCRIBE articles;
 +-------+--------------+------+-----+---------+----------------+
 | Field | Type         | Null | Key | Default | Extra          |
 +-------+--------------+------+-----+---------+----------------+
 | ID    | int(11)      | NO   | PRI | NULL    | auto_increment |
+| Name  | varchar(512) | YES  |     | NULL    |                |
 | URL   | varchar(512) | NO   |     | NULL    |                |
 +-------+--------------+------+-----+---------+----------------+
-2 rows in set (0.001 sec)
+3 rows in set (0.011 sec)
 
 
 
 tags table
 CREATE TABLE tags( ID INT AUTO_INCREMENT, Name VARCHAR(16) UNIQUE, Description VARCHAR(256), PRIMARY KEY (ID, Name) );
 
-MariaDB [radancomDB]> DESCRIBE tags;
+MariaDB [praxisDB]> DESCRIBE tags;
 +-------------+--------------+------+-----+---------+----------------+
 | Field       | Type         | Null | Key | Default | Extra          |
 +-------------+--------------+------+-----+---------+----------------+
@@ -119,7 +120,7 @@ MariaDB [radancomDB]> DESCRIBE tags;
 create article to tag table
 CREATE TABLE article_to_tag( ArticleID INT, TagID INT, PRIMARY KEY (ArticleID, TagID) );
 
-MariaDB [radancomDB]> DESCRIBE article_to_tag;
+MariaDB [praxisDB]> DESCRIBE article_to_tag;
 +-----------+---------+------+-----+---------+-------+
 | Field     | Type    | Null | Key | Default | Extra |
 +-----------+---------+------+-----+---------+-------+

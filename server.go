@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -10,16 +12,40 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type Article struct {
+	Name string
+	URL  string
+	Tags []string
+}
+
 func generateQueryHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println(mux.Vars(r)["query"])
+		log.Println(mux.Vars(r)["tags"])
+	}
+}
+
+func generateArticleHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		a := Article{}
+		err = json.Unmarshal(body, &a)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		fmt.Println(a)
 	}
 }
 
 // CreateRouter returns a new mux.Router with appropriately registered paths
 func CreateRouter(db *DB) *mux.Router {
 	router := mux.NewRouter()
-	router.HandleFunc("/api/query/{query}", generateQueryHandler(db))
+	router.HandleFunc("/api/query/tags/{tags}", generateQueryHandler(db))
+	router.HandleFunc("/api/add_article", generateArticleHandler(db)).Methods("POST")
 	router.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./frontend/index.html")
 	})
@@ -28,7 +54,8 @@ func CreateRouter(db *DB) *mux.Router {
 
 // CheckEnvVars checks environment variables to make sure they are set
 func CheckEnvVars() {
-	vars := []string{"APP_ENV", "MYSQL_USER", "MYSQL_PASSWORD", "HOST_ADDRESS", "HOST_PORT"}
+	vars := []string{"APP_ENV", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_DBNAME",
+		"HOST_ADDRESS", "HOST_PORT"}
 	for _, v := range vars {
 		if len(os.Getenv(v)) == 0 {
 			fmt.Println("WARNING: environment variable `" + v + "` not set")
@@ -51,7 +78,8 @@ func main() {
 
 	uname := os.Getenv("MYSQL_USER")
 	passwd := os.Getenv("MYSQL_PASSWORD")
-	db, err := DBConnect(uname, passwd, "radancomDB")
+	dbname := os.Getenv("MYSQL_DBNAME")
+	db, err := DBConnect(uname, passwd, dbname)
 	if err != nil {
 		log.Fatal(err)
 	}

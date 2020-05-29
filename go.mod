@@ -1,4 +1,4 @@
-module radancom
+module praxis
 
 go 1.13
 
