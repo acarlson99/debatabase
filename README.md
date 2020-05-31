@@ -1,4 +1,10 @@
+# This is a praxis
+
 ## Setup
+
+### Dependencies
+
+* mysql/mariadb
 
 ### DB
 
@@ -23,10 +29,26 @@ Query OK, 1 row affected (0.000 sec)
 MariaDB [(none)]> 
 ```
 
-### Server
+## Server
+
+### Deployment
 
 ```
 export APP_ENV=dev      # for local development
 # set DB uname/password
 go run .
+```
+
+### Development
+
+#### source `.env`
+
+`source <(sed 's/^/export /' .env)`
+
+#### CURL
+
+```
+$ curl $HOST_ADDRESS:$HOST_PORT/api/upload/tag --data '{"name":"engine","description":"a thing that does"}'
+$ curl $HOST_ADDRESS:$HOST_PORT/api/upload/article --data '{"name":"googel","url":"google.com","tags":["engine","search"]}'
+$ curl $HOST_ADDRESS:$HOST_PORT/api/query/tags/engine
 ```

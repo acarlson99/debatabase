@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strconv"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -66,6 +67,134 @@ func (db *DB) populate() {
 	db.Exec(`INSERT INTO article_to_tag (ArticleID, TagID) VALUES (1,2);`)
 }
 
+// TagExists checks if tag `t` exists in a database, returning the tag ID
+func (db *DB) TagExists(t string) (int64, bool) {
+	rows, err := db.Query("SELECT ID FROM tags WHERE Name=? LIMIT 1;", t)
+	if err != nil {
+		return 0, false
+	}
+	exists := rows.Next()
+	var id int64
+	id = 0
+	if exists {
+		rows.Scan(&id)
+	}
+	rows.Close()
+	return id, exists
+}
+
+func UnmarshalArticle(rows *sql.Rows) []Article {
+	articles := []Article{}
+	if rows == nil {
+		return articles
+	}
+	for rows.Next() {
+		id := 0
+		name := ""
+		url := ""
+
+		rows.Scan(&id, &name, &url)
+		articles = append(articles, Article{
+			Name: name,
+			URL:  url,
+		})
+	}
+	return articles
+}
+
+// ArticlesWithTags returns `limit` articles whose tags match all supplied tags, offset by `offset`
+func (db *DB) ArticlesWithTags(tags []string, offset, limit int) ([]Article, error) {
+	if len(tags) == 0 {
+		return []Article{}, nil
+	}
+
+	// TODO: figure out how to make this work
+	// var itags []interface{}
+	// for _, t := range tags {
+	// 	itags = append(itags, t)
+	// }
+	// s := "SELECT a.* " +
+	// 	"FROM article_to_tag at, articles a, tags t " +
+	// 	"WHERE t.ID = at.TagID " +
+	// 	"AND a.ID = at.ArticleID " +
+	// 	"AND (t.Name IN ('?'" + strings.Repeat(",?", len(tags)-1) + ")) " +
+	// 	"GROUP BY a.ID " +
+	// 	"HAVING COUNT(a.ID)=" + strconv.Itoa(len(tags)) + ";"
+	// rows, err := db.Query(s, itags...)
+
+	s := "SELECT a.* " +
+		"FROM article_to_tag at, articles a, tags t " +
+		"WHERE t.ID = at.TagID " +
+		"AND a.ID = at.ArticleID " +
+		"AND (t.Name IN ('" + tags[0] + "'"
+
+	for _, t := range tags[1:] {
+		s += ",'" + t + "'"
+	}
+	s += ")) " +
+		"GROUP BY a.ID " +
+		"HAVING COUNT(a.ID)=" + strconv.Itoa(len(tags)) + ";"
+	// fmt.Println(s)
+
+	rows, err := db.Query(s)
+
+	// TODO: add tags to article
+	if err != nil {
+		return []Article{}, err
+	}
+	defer rows.Close()
+	return UnmarshalArticle(rows), nil
+}
+
+// InsertArticleTag links an article to a tag
+func (db *DB) InsertArticleTag(articleID int64, tagID int64) (int64, error) {
+	res, err := db.Exec("INSERT INTO article_to_tag (ArticleID, TagID) VALUES (?, ?);", articleID, tagID)
+	if err != nil {
+		return 0, err
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+// InsertTag inserts a tag into a DB
+func (db *DB) InsertTag(t Tag) (int64, error) {
+	res, err := db.Exec("INSERT INTO tags (Name, Description) VALUES (?, ?);", t.Name, t.Description)
+
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		return id, err
+	}
+	return id, nil
+}
+
+// InsertArticle inserts an article into a DB, linking tags if they exist and returning the article's ID
+func (db *DB) InsertArticle(a Article) (int64, error) {
+	res, err := db.Exec("INSERT INTO articles (Name, URL) VALUES (?, ?);", a.Name, a.URL)
+
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		return id, err
+	}
+	for _, t := range a.Tags {
+		if tagID, ok := db.TagExists(t); ok {
+			db.InsertArticleTag(id, tagID)
+		}
+	}
+	return id, nil
+}
+
+// WARNING: vulnerable to SQL injection
 func (db *DB) tableExists(name string) bool {
 	rows, err := db.Query("SELECT 1 FROM " + name + " LIMIT 1;")
 	if rows != nil {
@@ -142,5 +271,9 @@ INSERT INTO article_to_tag (ArticleID, TagID) VALUES (1,1);
 INSERT INTO article_to_tag (ArticleID, TagID) VALUES (1,2);
 
 SELECT Name FROM article_to_tag att INNER JOIN articles a ON a.ID = att.ArticleID INNER JOIN tags t ON t.ID = att.TagID;
+
+
+
+SELECT * FROM article_to_tag at, articles a, tags t WHERE t.ID = at.TagID AND a.ID = at.ArticleID AND (t.Name IN ('testtag','testtag3')) GROUP BY a.ID HAVING COUNT(a.ID)=2;
 
 */
