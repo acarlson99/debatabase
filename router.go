@@ -24,14 +24,7 @@ func generateQueryHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
 
 		sp := strings.Split(tags, ",")
 
-		filtered := sp[:0]
-		for _, t := range sp {
-			if len(t) > 0 {
-				filtered = append(filtered, nonAlphanumRE.ReplaceAllString(t, ""))
-			}
-		}
-
-		articles, err := db.ArticlesWithTags(filtered, 0, 10)
+		articles, err := db.ArticlesWithTags(sp, 0, 10)
 		if err != nil {
 			w.WriteHeader(500)
 			w.Write([]byte(fmt.Sprintf("%v", err)))

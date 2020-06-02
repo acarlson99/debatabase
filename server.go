@@ -49,7 +49,9 @@ func main() {
 	dbname := os.Getenv("MYSQL_DBNAME")
 	db, err := DBConnect(uname, passwd, dbname)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Failed to connect to MySQL DB.  Is DB running?")
+		fmt.Println(err)
+		os.Exit(1)
 	}
 	db.Init()
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -108,35 +109,18 @@ func (db *DB) ArticlesWithTags(tags []string, offset, limit int) ([]Article, err
 		return []Article{}, nil
 	}
 
-	// TODO: figure out how to make this work
-	// var itags []interface{}
-	// for _, t := range tags {
-	// 	itags = append(itags, t)
-	// }
-	// s := "SELECT a.* " +
-	// 	"FROM article_to_tag at, articles a, tags t " +
-	// 	"WHERE t.ID = at.TagID " +
-	// 	"AND a.ID = at.ArticleID " +
-	// 	"AND (t.Name IN ('?'" + strings.Repeat(",?", len(tags)-1) + ")) " +
-	// 	"GROUP BY a.ID " +
-	// 	"HAVING COUNT(a.ID)=" + strconv.Itoa(len(tags)) + ";"
-	// rows, err := db.Query(s, itags...)
-
+	var itags []interface{}
+	for _, t := range tags {
+		itags = append(itags, t)
+	}
 	s := "SELECT a.* " +
 		"FROM article_to_tag at, articles a, tags t " +
 		"WHERE t.ID = at.TagID " +
 		"AND a.ID = at.ArticleID " +
-		"AND (t.Name IN ('" + tags[0] + "'"
-
-	for _, t := range tags[1:] {
-		s += ",'" + t + "'"
-	}
-	s += ")) " +
+		"AND (t.Name IN (?" + strings.Repeat(",?", len(itags)-1) + ")) " +
 		"GROUP BY a.ID " +
-		"HAVING COUNT(a.ID)=" + strconv.Itoa(len(tags)) + ";"
-	// fmt.Println(s)
-
-	rows, err := db.Query(s)
+		"HAVING COUNT(a.ID)=" + strconv.Itoa(len(itags)) + ";"
+	rows, err := db.Query(s, itags...)
 
 	// TODO: add tags to article
 	if err != nil {
