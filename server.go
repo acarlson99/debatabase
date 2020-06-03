@@ -10,12 +10,10 @@ import (
 )
 
 type Article struct {
-	ID   int64  `json:"id"` // NOTE: only updated when removing from DB
-	Name string `json:"name"`
-	URL  string `json:"url"`
-	// TODO: separate these fields
-	TagNames []string `json:"tags"`
-	Tags     []Tag    `json:"tag_names"`
+	ID   int64    `json:"id"` // NOTE: only updated when removing from DB
+	Name string   `json:"name"`
+	URL  string   `json:"url"`
+	Tags []string `json:"tags"`
 }
 
 type Tag struct {

@@ -148,7 +148,9 @@ func (db *DB) PopulateArticleTags(article Article) Article {
 	if err != nil {
 		return article
 	}
-	article.Tags = tags
+	for _, t := range tags {
+		article.Tags = append(article.Tags, t.Name)
+	}
 	return article
 }
 
@@ -195,7 +197,7 @@ func (db *DB) ArticlesWithTagsSearch(tags []string, lookslike string, limit, off
 	rows.Close()
 
 	for ii := range articles {
-		articles[ii].Tags, err = db.ArticleTags(articles[ii].ID)
+		articles[ii] = db.PopulateArticleTags(articles[ii])
 	}
 
 	return articles, nil
@@ -241,7 +243,7 @@ func (db *DB) InsertArticle(a Article) (int64, error) {
 	if err != nil {
 		return id, err
 	}
-	for _, t := range a.TagNames {
+	for _, t := range a.Tags {
 		if tagID, ok := db.TagNameExists(t); ok {
 			db.InsertArticleTag(id, tagID)
 		}

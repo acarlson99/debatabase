@@ -17,12 +17,6 @@ var (
 	nonAlphanumRE = regexp.MustCompile("[^a-zA-Z0-9]+")
 )
 
-type ArticleMsg struct {
-	Name string   `json:"name"`
-	URL  string   `json:"url"`
-	Tags []string `json:"tags"`
-}
-
 func generateSearchHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tags := mux.Vars(r)["tags"]
@@ -67,7 +61,7 @@ func generateArticleHandler(db *DB) func(w http.ResponseWriter, r *http.Request)
 		a := Article{}
 		err = json.Unmarshal(body, &a)
 		r.Body.Close()
-		if err != nil || len(a.Name) == 0 || len(a.TagNames) == 0 || len(a.URL) == 0 {
+		if err != nil || len(a.Name) == 0 || len(a.Tags) == 0 || len(a.URL) == 0 {
 			if err != nil {
 				log.Println(err)
 			}
@@ -115,6 +109,7 @@ func CreateRouter(db *DB) *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 
 	// search
+	// TODO: figure out another way of representing these paths, perhaps POST request
 	router.HandleFunc("/api/search/tags/{tags}/{limit}/{offset}/{lookslike}", generateSearchHandler(db))
 	router.HandleFunc("/api/search/tags/{tags}/{limit}/{offset}", generateSearchHandler(db))
 	router.HandleFunc("/api/search/tags/{tags}/{limit}/", generateSearchHandler(db))
@@ -123,6 +118,7 @@ func CreateRouter(db *DB) *mux.Router {
 	router.HandleFunc("/api/search/{limit}/{offset}", generateSearchHandler(db))
 	router.HandleFunc("/api/search/{limit}/", generateSearchHandler(db))
 	router.HandleFunc("/api/search/", generateSearchHandler(db))
+	// TODO: add endpoint for tag info
 
 	// upload DB
 	router.HandleFunc("/api/upload/article", generateArticleHandler(db)).Methods("POST")
