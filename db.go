@@ -68,9 +68,9 @@ func (db *DB) populate() {
 	db.Exec(`INSERT INTO article_to_tag (ArticleID, TagID) VALUES (1,2);`)
 }
 
-// TagExists checks if tag `t` exists in a database, returning the tag ID
-func (db *DB) TagExists(t string) (int64, bool) {
-	rows, err := db.Query("SELECT ID FROM tags WHERE Name=? LIMIT 1;", t)
+// TagNameExists checks if a tag named `s` exists in a database, returning the tag ID && true/false
+func (db *DB) TagNameExists(s string) (int64, bool) {
+	rows, err := db.Query("SELECT ID FROM tags WHERE Name=? LIMIT 1;", s)
 	if err != nil {
 		return 0, false
 	}
@@ -84,18 +84,21 @@ func (db *DB) TagExists(t string) (int64, bool) {
 	return id, exists
 }
 
+// UnmarshalArticle takes sql.Rows from the `article` table and parses it into an array of Article structs
+// NOTE: does NOT populate `tags` field
 func UnmarshalArticle(rows *sql.Rows) []Article {
 	articles := []Article{}
 	if rows == nil {
 		return articles
 	}
 	for rows.Next() {
-		id := 0
+		var id int64
 		name := ""
 		url := ""
 
 		rows.Scan(&id, &name, &url)
 		articles = append(articles, Article{
+			ID:   id,
 			Name: name,
 			URL:  url,
 		})
@@ -103,34 +106,102 @@ func UnmarshalArticle(rows *sql.Rows) []Article {
 	return articles
 }
 
-// ArticlesWithTags returns `limit` articles whose tags match all supplied tags, offset by `offset`
-func (db *DB) ArticlesWithTags(tags []string, offset, limit int) ([]Article, error) {
-	if len(tags) == 0 {
-		return []Article{}, nil
+// UnmarshalTags takes sql.Rows from the `tags` table and parses it into an array of Tag structs
+func UnmarshalTags(rows *sql.Rows) []Tag {
+	tags := []Tag{}
+	if rows == nil {
+		return tags
+	}
+	for rows.Next() {
+		var id int64
+		name := ""
+		description := ""
+
+		rows.Scan(&id, &name, &description)
+		tags = append(tags, Tag{
+			ID:          id,
+			Name:        name,
+			Description: description,
+		})
+	}
+	return tags
+}
+
+// ArticleTags finds all tags associated with an article ID
+func (db *DB) ArticleTags(id int64) ([]Tag, error) {
+	s := "SELECT t.* " +
+		"FROM tags t, article_to_tag at " +
+		"WHERE at.ArticleID = ? " +
+		"AND at.TagID = t.ID;"
+	rows, err := db.Query(s, id)
+	if err != nil {
+		return []Tag{}, err
 	}
 
-	var itags []interface{}
-	for _, t := range tags {
-		itags = append(itags, t)
+	tags := UnmarshalTags(rows)
+	return tags, nil
+}
+
+// PopulateArticleTags adds tags to existing article struct based on article.ID
+func (db *DB) PopulateArticleTags(article Article) Article {
+	tags, err := db.ArticleTags(article.ID)
+	if err != nil {
+		return article
 	}
+	article.Tags = tags
+	return article
+}
+
+// ArticlesWithTagsSearch returns `limit` articles whose tags match all supplied tags, offset by `offset`
+func (db *DB) ArticlesWithTagsSearch(tags []string, lookslike string, limit, offset int) ([]Article, error) {
+	fmt.Println("QUERYING", tags, "LEN", len(tags))
+	var itags []interface{}
 	s := "SELECT a.* " +
 		"FROM article_to_tag at, articles a, tags t " +
 		"WHERE t.ID = at.TagID " +
-		"AND a.ID = at.ArticleID " +
-		"AND (t.Name IN (?" + strings.Repeat(",?", len(itags)-1) + ")) " +
-		"GROUP BY a.ID " +
-		"HAVING COUNT(a.ID)=" + strconv.Itoa(len(itags)) + ";"
-	rows, err := db.Query(s, itags...)
+		"AND a.ID = at.ArticleID"
 
-	// TODO: add tags to article
+	if len(tags) > 0 {
+		for _, t := range tags {
+			itags = append(itags, t)
+		}
+		s += " AND t.Name IN (?" + strings.Repeat(",?", len(tags)-1) + ")"
+	}
+	if len(lookslike) > 0 {
+		itags = append(itags, lookslike)
+		s += " AND a.Name LIKE CONCAT('%',?,'%')"
+	}
+	if len(tags) > 0 {
+		s += " GROUP BY a.ID " +
+			"HAVING COUNT(a.ID)=" + strconv.Itoa(len(tags))
+	}
+	if limit > 0 {
+		itags = append(itags, limit)
+		s += " LIMIT ?"
+	}
+	if offset > 0 {
+		itags = append(itags, offset)
+		s += " OFFSET ?"
+	}
+	s += ";"
+
+	fmt.Println(s)
+	rows, err := db.Query(s, itags...)
 	if err != nil {
 		return []Article{}, err
 	}
-	defer rows.Close()
-	return UnmarshalArticle(rows), nil
+
+	articles := UnmarshalArticle(rows)
+	rows.Close()
+
+	for ii := range articles {
+		articles[ii].Tags, err = db.ArticleTags(articles[ii].ID)
+	}
+
+	return articles, nil
 }
 
-// InsertArticleTag links an article to a tag
+// InsertArticleTag links an article to a tag, returning ID of inserted element
 func (db *DB) InsertArticleTag(articleID int64, tagID int64) (int64, error) {
 	res, err := db.Exec("INSERT INTO article_to_tag (ArticleID, TagID) VALUES (?, ?);", articleID, tagID)
 	if err != nil {
@@ -143,7 +214,7 @@ func (db *DB) InsertArticleTag(articleID int64, tagID int64) (int64, error) {
 	return id, nil
 }
 
-// InsertTag inserts a tag into a DB
+// InsertTag inserts a tag into a DB, returning ID of inserted element
 func (db *DB) InsertTag(t Tag) (int64, error) {
 	res, err := db.Exec("INSERT INTO tags (Name, Description) VALUES (?, ?);", t.Name, t.Description)
 
@@ -158,7 +229,7 @@ func (db *DB) InsertTag(t Tag) (int64, error) {
 	return id, nil
 }
 
-// InsertArticle inserts an article into a DB, linking tags if they exist and returning the article's ID
+// InsertArticle inserts an article into a DB, linking tags if they exist and returning the article's ID, returning ID of inserted element
 func (db *DB) InsertArticle(a Article) (int64, error) {
 	res, err := db.Exec("INSERT INTO articles (Name, URL) VALUES (?, ?);", a.Name, a.URL)
 
@@ -170,8 +241,8 @@ func (db *DB) InsertArticle(a Article) (int64, error) {
 	if err != nil {
 		return id, err
 	}
-	for _, t := range a.Tags {
-		if tagID, ok := db.TagExists(t); ok {
+	for _, t := range a.TagNames {
+		if tagID, ok := db.TagNameExists(t); ok {
 			db.InsertArticleTag(id, tagID)
 		}
 	}

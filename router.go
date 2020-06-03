@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -16,15 +17,28 @@ var (
 	nonAlphanumRE = regexp.MustCompile("[^a-zA-Z0-9]+")
 )
 
-func generateQueryHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
+type ArticleMsg struct {
+	Name string   `json:"name"`
+	URL  string   `json:"url"`
+	Tags []string `json:"tags"`
+}
+
+func generateSearchHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tags := mux.Vars(r)["tags"]
+		limit, _ := strconv.Atoi(mux.Vars(r)["limit"])
+		offset, _ := strconv.Atoi(mux.Vars(r)["offset"])
+		lookslike := mux.Vars(r)["lookslike"]
 
-		// TODO: verify that tags are CSV
+		sp := []string{}
+		if len(tags) > 0 {
+			sp = strings.Split(tags, ",")
+		}
 
-		sp := strings.Split(tags, ",")
+		var articles []Article
+		var err error
 
-		articles, err := db.ArticlesWithTags(sp, 0, 10)
+		articles, err = db.ArticlesWithTagsSearch(sp, lookslike, limit, offset)
 		if err != nil {
 			w.WriteHeader(500)
 			w.Write([]byte(fmt.Sprintf("%v", err)))
@@ -40,8 +54,6 @@ func generateQueryHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
 		} else {
 			w.Write(resp)
 		}
-
-		// w.WriteHeader(501)
 	}
 }
 
@@ -55,7 +67,10 @@ func generateArticleHandler(db *DB) func(w http.ResponseWriter, r *http.Request)
 		a := Article{}
 		err = json.Unmarshal(body, &a)
 		r.Body.Close()
-		if err != nil || len(a.Name) == 0 || len(a.Tags) == 0 || len(a.URL) == 0 {
+		if err != nil || len(a.Name) == 0 || len(a.TagNames) == 0 || len(a.URL) == 0 {
+			if err != nil {
+				log.Println(err)
+			}
 			w.WriteHeader(400)
 			return
 		}
@@ -97,10 +112,17 @@ func generateTagHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
 
 // CreateRouter returns a new mux.Router with appropriately registered paths
 func CreateRouter(db *DB) *mux.Router {
-	router := mux.NewRouter()
+	router := mux.NewRouter().StrictSlash(true)
 
 	// search
-	router.HandleFunc("/api/query/tags/{tags}", generateQueryHandler(db))
+	router.HandleFunc("/api/search/tags/{tags}/{limit}/{offset}/{lookslike}", generateSearchHandler(db))
+	router.HandleFunc("/api/search/tags/{tags}/{limit}/{offset}", generateSearchHandler(db))
+	router.HandleFunc("/api/search/tags/{tags}/{limit}/", generateSearchHandler(db))
+	router.HandleFunc("/api/search/tags/{tags}/", generateSearchHandler(db))
+	router.HandleFunc("/api/search/{limit}/{offset}/{lookslike}", generateSearchHandler(db))
+	router.HandleFunc("/api/search/{limit}/{offset}", generateSearchHandler(db))
+	router.HandleFunc("/api/search/{limit}/", generateSearchHandler(db))
+	router.HandleFunc("/api/search/", generateSearchHandler(db))
 
 	// upload DB
 	router.HandleFunc("/api/upload/article", generateArticleHandler(db)).Methods("POST")
