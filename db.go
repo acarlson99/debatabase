@@ -139,6 +139,7 @@ func (db *DB) ArticleTags(id int64) ([]Tag, error) {
 	}
 
 	tags := UnmarshalTags(rows)
+	rows.Close()
 	return tags, nil
 }
 
@@ -201,6 +202,26 @@ func (db *DB) ArticlesWithTagsSearch(tags []string, lookslike string, limit, off
 	}
 
 	return articles, nil
+}
+
+// TagInfo returns a list of Tag structs given an array of tag names
+func (db *DB) TagInfo(tags []string) ([]Tag, error) {
+	s := "SELECT * FROM tags"
+
+	var itags []interface{}
+	if len(tags) > 0 {
+		for _, t := range tags {
+			itags = append(itags, t)
+		}
+		s += " WHERE Name IN (?" + strings.Repeat(",?", len(tags)-1) + ")"
+	}
+	rows, err := db.Query(s, itags...)
+	if err != nil {
+		return []Tag{}, err
+	}
+	rtags := UnmarshalTags(rows)
+	rows.Close()
+	return rtags, nil
 }
 
 // InsertArticleTag links an article to a tag, returning ID of inserted element
