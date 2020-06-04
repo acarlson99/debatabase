@@ -10,10 +10,11 @@ import (
 )
 
 type Article struct {
-	ID   int64    `json:"id"` // NOTE: only updated when removing from DB
-	Name string   `json:"name"`
-	URL  string   `json:"url"`
-	Tags []string `json:"tags"`
+	ID          int64    `json:"id"` // NOTE: only updated when removing from DB
+	Name        string   `json:"name"`
+	URL         string   `json:"url"`
+	Description string   `json:"description"`
+	Tags        []string `json:"tags"`
 }
 
 type Tag struct {

@@ -36,7 +36,7 @@ func (db *DB) Init() {
 	fmt.Println("Initializing database...")
 	if !db.tableExists("articles") {
 		fmt.Println("DB creating table `articles`...")
-		_, err := db.Exec("CREATE TABLE articles( ID INT AUTO_INCREMENT, Name VARCHAR(512), URL VARCHAR(512) NOT NULL, PRIMARY KEY (ID) );")
+		_, err := db.Exec("CREATE TABLE articles( ID INT AUTO_INCREMENT, Name VARCHAR(512), URL VARCHAR(512) NOT NULL, Description VARCHAR(1024), PRIMARY KEY (ID) );")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -95,12 +95,14 @@ func UnmarshalArticle(rows *sql.Rows) []Article {
 		var id int64
 		name := ""
 		url := ""
+		desc := ""
 
-		rows.Scan(&id, &name, &url)
+		rows.Scan(&id, &name, &url, &desc)
 		articles = append(articles, Article{
-			ID:   id,
-			Name: name,
-			URL:  url,
+			ID:          id,
+			Name:        name,
+			URL:         url,
+			Description: desc,
 		})
 	}
 	return articles
@@ -155,23 +157,25 @@ func (db *DB) PopulateArticleTags(article Article) Article {
 	return article
 }
 
-// ArticlesWithTagsSearch returns `limit` articles whose tags match all supplied tags, offset by `offset`
+// ArticlesWithTagsSearch returns `limit` articles whose tags match all supplied tags, offset by `offset`, whose names OR description match `lookslike`
 func (db *DB) ArticlesWithTagsSearch(tags []string, lookslike string, limit, offset int) ([]Article, error) {
 	var itags []interface{}
 	s := "SELECT a.* " +
-		"FROM article_to_tag at, articles a, tags t " +
-		"WHERE t.ID = at.TagID " +
-		"AND a.ID = at.ArticleID"
+		"FROM article_to_tag at, articles a, tags t"
 
 	if len(tags) > 0 {
 		for _, t := range tags {
 			itags = append(itags, t)
 		}
-		s += " AND t.Name IN (?" + strings.Repeat(",?", len(tags)-1) + ")"
+		s += " WHERE t.ID = at.TagID " +
+			"AND a.ID = at.ArticleID " +
+			"AND t.Name IN (?" + strings.Repeat(",?", len(tags)-1) + ")"
+	} else {
+		s += " WHERE TRUE"
 	}
 	if len(lookslike) > 0 {
-		itags = append(itags, lookslike)
-		s += " AND a.Name LIKE CONCAT('%',?,'%')"
+		itags = append(itags, lookslike, lookslike)
+		s += " AND (a.Name LIKE CONCAT('%',?,'%') OR a.Description LIKE CONCAT('%',?,'%'))"
 	}
 	s += " GROUP BY a.ID"
 	if len(tags) > 0 {
@@ -187,6 +191,7 @@ func (db *DB) ArticlesWithTagsSearch(tags []string, lookslike string, limit, off
 	}
 	s += ";"
 
+	fmt.Println(s)
 	rows, err := db.Query(s, itags...)
 	if err != nil {
 		return []Article{}, err
@@ -202,6 +207,7 @@ func (db *DB) ArticlesWithTagsSearch(tags []string, lookslike string, limit, off
 	return articles, nil
 }
 
+// TagSearch returns `limit` tags whose names are in `tags`, offset by `offset`, whose names match `lookslike`
 // TagSearch returns a list of Tag structs given an array of tag names
 func (db *DB) TagSearch(tags []string, lookslike string, limit int, offset int) ([]Tag, error) {
 	s := "SELECT * FROM tags WHERE"
@@ -271,7 +277,7 @@ func (db *DB) InsertTag(t Tag) (int64, error) {
 
 // InsertArticle inserts an article into a DB, linking tags if they exist and returning the article's ID, returning ID of inserted element
 func (db *DB) InsertArticle(a Article) (int64, error) {
-	res, err := db.Exec("INSERT INTO articles (Name, URL) VALUES (?, ?);", a.Name, a.URL)
+	res, err := db.Exec("INSERT INTO articles (Name, URL, Description) VALUES (?, ?, ?);", a.Name, a.URL, a.Description)
 
 	if err != nil {
 		return 0, err
