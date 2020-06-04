@@ -157,7 +157,6 @@ func (db *DB) PopulateArticleTags(article Article) Article {
 
 // ArticlesWithTagsSearch returns `limit` articles whose tags match all supplied tags, offset by `offset`
 func (db *DB) ArticlesWithTagsSearch(tags []string, lookslike string, limit, offset int) ([]Article, error) {
-	fmt.Println("QUERYING", tags, "LEN", len(tags))
 	var itags []interface{}
 	s := "SELECT a.* " +
 		"FROM article_to_tag at, articles a, tags t " +
@@ -174,21 +173,20 @@ func (db *DB) ArticlesWithTagsSearch(tags []string, lookslike string, limit, off
 		itags = append(itags, lookslike)
 		s += " AND a.Name LIKE CONCAT('%',?,'%')"
 	}
+	s += " GROUP BY a.ID"
 	if len(tags) > 0 {
-		s += " GROUP BY a.ID " +
-			"HAVING COUNT(a.ID)=" + strconv.Itoa(len(tags))
+		s += " HAVING COUNT(a.ID)=" + strconv.Itoa(len(tags))
 	}
 	if limit > 0 {
 		itags = append(itags, limit)
 		s += " LIMIT ?"
-	}
-	if offset > 0 {
-		itags = append(itags, offset)
-		s += " OFFSET ?"
+		if offset > 0 {
+			itags = append(itags, offset)
+			s += " OFFSET ?"
+		}
 	}
 	s += ";"
 
-	fmt.Println(s)
 	rows, err := db.Query(s, itags...)
 	if err != nil {
 		return []Article{}, err
@@ -204,23 +202,42 @@ func (db *DB) ArticlesWithTagsSearch(tags []string, lookslike string, limit, off
 	return articles, nil
 }
 
-// TagInfo returns a list of Tag structs given an array of tag names
-func (db *DB) TagInfo(tags []string) ([]Tag, error) {
-	s := "SELECT * FROM tags"
+// TagSearch returns a list of Tag structs given an array of tag names
+func (db *DB) TagSearch(tags []string, lookslike string, limit int, offset int) ([]Tag, error) {
+	s := "SELECT * FROM tags WHERE"
 
 	var itags []interface{}
 	if len(tags) > 0 {
 		for _, t := range tags {
 			itags = append(itags, t)
 		}
-		s += " WHERE Name IN (?" + strings.Repeat(",?", len(tags)-1) + ")"
+		s += " Name IN (?" + strings.Repeat(",?", len(tags)-1) + ")"
+	} else {
+		s += " TRUE"
 	}
+	if len(lookslike) > 0 {
+		itags = append(itags, lookslike)
+		s += " AND Name LIKE CONCAT('%',?,'%')"
+	}
+	s += " GROUP BY ID"
+	if limit > 0 {
+		itags = append(itags, limit)
+		s += " LIMIT ?"
+		if offset > 0 {
+			itags = append(itags, offset)
+			s += " OFFSET ?"
+		}
+	}
+	s += ";"
+
 	rows, err := db.Query(s, itags...)
 	if err != nil {
 		return []Tag{}, err
 	}
+
 	rtags := UnmarshalTags(rows)
 	rows.Close()
+
 	return rtags, nil
 }
 
@@ -284,11 +301,8 @@ func (db *DB) tableExists(name string) bool {
 func printRows(rows *sql.Rows) {
 	for rows.Next() {
 		var line string
-		err := rows.Scan(&line)
-		if err != nil {
-			log.Println("ERROR", err)
-		}
-		log.Println(line)
+		rows.Scan(&line)
+		fmt.Println(line)
 	}
 }
 

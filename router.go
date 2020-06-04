@@ -17,12 +17,31 @@ var (
 	nonAlphanumRE = regexp.MustCompile("[^a-zA-Z0-9]+")
 )
 
+func enableCors(w *http.ResponseWriter) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	// (*w).Header().Set("Access-Control-Allow-Methods", "HEAD, GET, POST, PUT, PATCH, DELETE, OPTIONS")
+	// (*w).Header().Set("Access-Control-Allow-Headers", "X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Request-Method,Access-Control-Request-Headers, Authorization")
+	// (*w).Header().Set("Content-Type", "application/json")
+	// $method = $_SERVER["REQUEST_METHOD"];
+	// if ($method == "OPTIONS") {
+	// header("Access-Control-Allow-Origin: *");
+	// header("Access-Control-Allow-Headers: X-API-KEY, Origin, X-Requested-With, Content-Type, Accept, Access-Control-Request-Method,Access-Control-Request-Headers, Authorization");
+	// header("HTTP/1.1 200 OK");
+	// die();
+	// }
+}
+
 func generateArticleSearchHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		tags := mux.Vars(r)["tags"]
-		limit, _ := strconv.Atoi(mux.Vars(r)["limit"])
-		offset, _ := strconv.Atoi(mux.Vars(r)["offset"])
-		lookslike := mux.Vars(r)["lookslike"]
+		enableCors(&w)
+		parts := make(map[string]string)
+		for k, v := range r.URL.Query() {
+			parts[k] = v[0]
+		}
+		tags := parts["tags"]
+		limit, _ := strconv.Atoi(parts["limit"])
+		offset, _ := strconv.Atoi(parts["offset"])
+		lookslike := parts["lookslike"]
 
 		sp := []string{}
 		if len(tags) > 0 {
@@ -41,7 +60,7 @@ func generateArticleSearchHandler(db *DB) func(w http.ResponseWriter, r *http.Re
 		if err != nil {
 			w.WriteHeader(500)
 			w.Write([]byte(fmt.Sprintf("%v", err)))
-			log.Println("Error marshaling response")
+			log.Println("Error marshalling response:", err)
 		} else {
 			w.Write(resp)
 		}
@@ -50,14 +69,22 @@ func generateArticleSearchHandler(db *DB) func(w http.ResponseWriter, r *http.Re
 
 func generateTagSearchHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		tagStr := mux.Vars(r)["tags"]
+		enableCors(&w)
+		parts := make(map[string]string)
+		for k, v := range r.URL.Query() {
+			parts[k] = v[0]
+		}
+		tagStr := parts["tags"]
+		limit, _ := strconv.Atoi(parts["limit"])
+		offset, _ := strconv.Atoi(parts["offset"])
+		lookslike := parts["lookslike"]
 
 		sp := []string{}
 		if len(tagStr) > 0 {
 			sp = strings.Split(tagStr, ",")
 		}
 
-		tags, err := db.TagInfo(sp)
+		tags, err := db.TagSearch(sp, lookslike, limit, offset)
 		if err != nil {
 			w.WriteHeader(500)
 			w.Write([]byte(fmt.Sprintf("%v", err)))
@@ -69,7 +96,7 @@ func generateTagSearchHandler(db *DB) func(w http.ResponseWriter, r *http.Reques
 		if err != nil {
 			w.WriteHeader(500)
 			w.Write([]byte(fmt.Sprintf("%v", err)))
-			log.Println("Error marshaling response")
+			log.Println("Error marshalling response:", err)
 		} else {
 			w.Write(resp)
 		}
@@ -78,9 +105,10 @@ func generateTagSearchHandler(db *DB) func(w http.ResponseWriter, r *http.Reques
 
 func generateArticleHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		enableCors(&w)
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			log.Println(err)
+			log.Println("Error reading body:", err)
 			return
 		}
 		a := Article{}
@@ -88,7 +116,7 @@ func generateArticleHandler(db *DB) func(w http.ResponseWriter, r *http.Request)
 		r.Body.Close()
 		if err != nil || len(a.Name) == 0 || len(a.Tags) == 0 || len(a.URL) == 0 {
 			if err != nil {
-				log.Println(err)
+				log.Println("Error unmarshalling data:", err)
 			}
 			w.WriteHeader(400)
 			return
@@ -106,9 +134,10 @@ func generateArticleHandler(db *DB) func(w http.ResponseWriter, r *http.Request)
 
 func generateTagHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		enableCors(&w)
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			log.Println(err)
+			log.Println("Error reading body:", err)
 			return
 		}
 		a := Tag{}
@@ -135,21 +164,15 @@ func CreateRouter(db *DB) *mux.Router {
 
 	// search
 	// returns info about articles
-	// TODO: figure out another way of representing these paths, perhaps POST request
-	router.HandleFunc("/api/search/article/tags/{tags}/{limit}/{offset}/{lookslike}", generateArticleSearchHandler(db))
-	router.HandleFunc("/api/search/article/tags/{tags}/{limit}/{offset}/", generateArticleSearchHandler(db))
-	router.HandleFunc("/api/search/article/tags/{tags}/{limit}/", generateArticleSearchHandler(db))
-	router.HandleFunc("/api/search/article/tags/{tags}/", generateArticleSearchHandler(db))
-	router.HandleFunc("/api/search/article/{limit}/{offset}/{lookslike}", generateArticleSearchHandler(db))
-	router.HandleFunc("/api/search/article/{limit}/{offset}", generateArticleSearchHandler(db))
-	router.HandleFunc("/api/search/article/{limit}/", generateArticleSearchHandler(db))
+	// curl -L -i $HOST_ADDRESS:$HOST_PORT/api/search/article/?'tags=search&limit=1&offset=0&lookslike=ooooogle'
+	router.HandleFunc("/api/search/article", generateArticleSearchHandler(db))
 	// return info about requested tags
-	router.HandleFunc("/api/search/tags/{tags}", generateTagSearchHandler(db))
-	router.HandleFunc("/api/search/tags/", generateTagSearchHandler(db))
+	// curl -L -i $HOST_ADDRESS:$HOST_PORT/api/search/tag/?'tags=search&limit=1&offset=0&lookslike=ooooogle'
+	router.HandleFunc("/api/search/tag", generateTagSearchHandler(db))
 
 	// upload DB
-	router.HandleFunc("/api/upload/article", generateArticleHandler(db)).Methods("POST")
-	router.HandleFunc("/api/upload/tag", generateTagHandler(db)).Methods("POST")
+	router.HandleFunc("/api/upload/article", generateArticleHandler(db)).Methods("POST") // create new article
+	router.HandleFunc("/api/upload/tag", generateTagHandler(db)).Methods("POST")         // create new tag
 	router.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./frontend/index.html")
 	})

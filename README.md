@@ -48,7 +48,7 @@ go run .
 #### CURL
 
 ```
-$ curl $HOST_ADDRESS:$HOST_PORT/api/upload/tag --data '{"name":"engine","description":"a thing that does"}'
-$ curl $HOST_ADDRESS:$HOST_PORT/api/upload/article --data '{"name":"googel","url":"google.com","tags":["engine","search"]}'
+$ curl -L -i $HOST_ADDRESS:$HOST_PORT/api/upload/tag --data '{"name":"engine","description":"a thing that does"}'
+$ curl -L -i $HOST_ADDRESS:$HOST_PORT/api/upload/article --data '{"name":"googel","url":"google.com","tags":["engine","search"]}'
 $ curl $HOST_ADDRESS:$HOST_PORT/api/query/tags/engine
 ```
