@@ -191,7 +191,6 @@ func (db *DB) ArticlesWithTagsSearch(tags []string, lookslike string, limit, off
 	}
 	s += ";"
 
-	fmt.Println(s)
 	rows, err := db.Query(s, itags...)
 	if err != nil {
 		return []Article{}, err
