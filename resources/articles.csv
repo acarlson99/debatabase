@@ -1,0 +1,5 @@
+name,url,description,tags
+test1,google.com,this is a test,"nazi,co-op,BLM,LGBTQ+"
+test1,google.com,,"nazi,co-op"
+test2,,description,"nazi,co-op"
+test3,,,"nazi,co-op"
