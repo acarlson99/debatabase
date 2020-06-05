@@ -36,7 +36,7 @@ func (db *DB) Init() {
 	fmt.Println("Initializing database...")
 	if !db.tableExists("articles") {
 		fmt.Println("DB creating table `articles`...")
-		_, err := db.Exec("CREATE TABLE articles( ID INT AUTO_INCREMENT, Name VARCHAR(512), URL VARCHAR(512) NOT NULL, Description VARCHAR(1024), PRIMARY KEY (ID) );")
+		_, err := db.Exec("CREATE TABLE articles( ID INT AUTO_INCREMENT, Name VARCHAR(512) NOT NULL, URL VARCHAR(512), Description VARCHAR(1024), PRIMARY KEY (ID) );")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -84,6 +84,22 @@ func (db *DB) TagNameExists(s string) (int64, bool) {
 	return id, exists
 }
 
+func stringOrNil(i string) interface{} {
+	if len(i) > 0 {
+		return i
+	} else {
+		return nil
+	}
+}
+
+func nullStringToString(s sql.NullString) string {
+	if s.Valid {
+		return s.String
+	} else {
+		return ""
+	}
+}
+
 // UnmarshalArticle takes sql.Rows from the `article` table and parses it into an array of Article structs
 // NOTE: does NOT populate `tags` field
 func UnmarshalArticle(rows *sql.Rows) []Article {
@@ -94,15 +110,18 @@ func UnmarshalArticle(rows *sql.Rows) []Article {
 	for rows.Next() {
 		var id int64
 		name := ""
-		url := ""
-		desc := ""
+		var url sql.NullString
+		var desc sql.NullString
 
-		rows.Scan(&id, &name, &url, &desc)
+		err := rows.Scan(&id, &name, &url, &desc)
+		if err != nil {
+			log.Println("Error unmarshalling article:", err)
+		}
 		articles = append(articles, Article{
 			ID:          id,
 			Name:        name,
-			URL:         url,
-			Description: desc,
+			URL:         nullStringToString(url),
+			Description: nullStringToString(desc),
 		})
 	}
 	return articles
@@ -117,13 +136,16 @@ func UnmarshalTags(rows *sql.Rows) []Tag {
 	for rows.Next() {
 		var id int64
 		name := ""
-		description := ""
+		var description sql.NullString
 
-		rows.Scan(&id, &name, &description)
+		err := rows.Scan(&id, &name, &description)
+		if err != nil {
+			log.Println("Error unmarshalling article:", err)
+		}
 		tags = append(tags, Tag{
 			ID:          id,
 			Name:        name,
-			Description: description,
+			Description: nullStringToString(description),
 		})
 	}
 	return tags
@@ -261,7 +283,7 @@ func (db *DB) InsertArticleTag(articleID int64, tagID int64) (int64, error) {
 
 // InsertTag inserts a tag into a DB, returning ID of inserted element
 func (db *DB) InsertTag(t Tag) (int64, error) {
-	res, err := db.Exec("INSERT INTO tags (Name, Description) VALUES (?, ?);", t.Name, t.Description)
+	res, err := db.Exec("INSERT INTO tags (Name, Description) VALUES (?, ?);", stringOrNil(t.Name), stringOrNil(t.Description))
 
 	if err != nil {
 		return 0, err
@@ -276,7 +298,7 @@ func (db *DB) InsertTag(t Tag) (int64, error) {
 
 // InsertArticle inserts an article into a DB, linking tags if they exist and returning the article's ID, returning ID of inserted element
 func (db *DB) InsertArticle(a Article) (int64, error) {
-	res, err := db.Exec("INSERT INTO articles (Name, URL, Description) VALUES (?, ?, ?);", a.Name, a.URL, a.Description)
+	res, err := db.Exec("INSERT INTO articles (Name, URL, Description) VALUES (?, ?, ?);", stringOrNil(a.Name), stringOrNil(a.URL), stringOrNil(a.Description))
 
 	if err != nil {
 		return 0, err
@@ -321,8 +343,8 @@ MariaDB [praxis_test_DB]> DESCRIBE articles;
 | Field       | Type          | Null | Key | Default | Extra          |
 +-------------+---------------+------+-----+---------+----------------+
 | ID          | int(11)       | NO   | PRI | NULL    | auto_increment |
-| Name        | varchar(512)  | YES  |     | NULL    |                |
-| URL         | varchar(512)  | NO   |     | NULL    |                |
+| Name        | varchar(512)  | NO   |     | NULL    |                |
+| URL         | varchar(512)  | YES  |     | NULL    |                |
 | Description | varchar(1024) | YES  |     | NULL    |                |
 +-------------+---------------+------+-----+---------+----------------+
 4 rows in set (0.008 sec)

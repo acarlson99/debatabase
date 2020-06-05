@@ -132,12 +132,15 @@ func generateArticleCSVHandler(db *DB) func(w http.ResponseWriter, r *http.Reque
 				log.Println("Error inserting article:", err)
 			}
 		}
+		err := r.Body.Close()
+		if err != nil {
+			log.Println("Error closing http.Request body:", err)
+		}
 	}
 }
 
 func generateTagCSVHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("AAAA")
 		enableCors(&w)
 		reader := csv.NewReader(r.Body)
 		for {
@@ -161,6 +164,10 @@ func generateTagCSVHandler(db *DB) func(w http.ResponseWriter, r *http.Request) 
 				log.Println("Error inserting article:", err)
 			}
 		}
+		err := r.Body.Close()
+		if err != nil {
+			log.Println("Error closing http.Request body:", err)
+		}
 	}
 }
 
@@ -174,8 +181,7 @@ func generateArticleHandler(db *DB) func(w http.ResponseWriter, r *http.Request)
 		}
 		a := Article{}
 		err = json.Unmarshal(body, &a)
-		r.Body.Close()
-		if err != nil || len(a.Name) == 0 || len(a.Tags) == 0 || len(a.URL) == 0 {
+		if err != nil {
 			if err != nil {
 				log.Println("Error unmarshalling data:", err)
 			}
@@ -183,6 +189,11 @@ func generateArticleHandler(db *DB) func(w http.ResponseWriter, r *http.Request)
 			return
 		}
 		fmt.Printf("%+v\n", a)
+
+		err = r.Body.Close()
+		if err != nil {
+			log.Println("Error closing http.Request body:", err)
+		}
 
 		_, err = db.InsertArticle(a)
 		if err != nil {
@@ -203,12 +214,16 @@ func generateTagHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
 		}
 		a := Tag{}
 		err = json.Unmarshal(body, &a)
-		r.Body.Close()
 		if err != nil || len(a.Name) == 0 || len(a.Description) == 0 {
 			w.WriteHeader(400)
 			return
 		}
 		fmt.Printf("%+v\n", a)
+
+		err = r.Body.Close()
+		if err != nil {
+			log.Println("Error closing http.Request body:", err)
+		}
 
 		_, err = db.InsertTag(a)
 		if err != nil {
