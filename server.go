@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 
 	"github.com/joho/godotenv"
 )
@@ -57,6 +58,16 @@ func main() {
 		os.Exit(1)
 	}
 	db.Init()
+
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt)
+		sig := <-c
+
+		fmt.Println("Received", sig, "signal.  Shutting down...")
+		db.Close()
+		os.Exit(0)
+	}()
 
 	router := CreateRouter(db)
 	addr := os.Getenv("HOST_ADDRESS")

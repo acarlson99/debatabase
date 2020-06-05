@@ -316,22 +316,23 @@ func printRows(rows *sql.Rows) {
 create articles table
 CREATE TABLE articles( ID INT AUTO_INCREMENT, Name VARCHAR(512), URL VARCHAR(512) NOT NULL, PRIMARY KEY (ID) );
 
-MariaDB [praxisDB]> DESCRIBE articles;
-+-------+--------------+------+-----+---------+----------------+
-| Field | Type         | Null | Key | Default | Extra          |
-+-------+--------------+------+-----+---------+----------------+
-| ID    | int(11)      | NO   | PRI | NULL    | auto_increment |
-| Name  | varchar(512) | YES  |     | NULL    |                |
-| URL   | varchar(512) | NO   |     | NULL    |                |
-+-------+--------------+------+-----+---------+----------------+
-3 rows in set (0.011 sec)
+MariaDB [praxis_test_DB]> DESCRIBE articles;
++-------------+---------------+------+-----+---------+----------------+
+| Field       | Type          | Null | Key | Default | Extra          |
++-------------+---------------+------+-----+---------+----------------+
+| ID          | int(11)       | NO   | PRI | NULL    | auto_increment |
+| Name        | varchar(512)  | YES  |     | NULL    |                |
+| URL         | varchar(512)  | NO   |     | NULL    |                |
+| Description | varchar(1024) | YES  |     | NULL    |                |
++-------------+---------------+------+-----+---------+----------------+
+4 rows in set (0.008 sec)
 
 
 
 tags table
 CREATE TABLE tags( ID INT AUTO_INCREMENT, Name VARCHAR(16) UNIQUE, Description VARCHAR(256), PRIMARY KEY (ID, Name) );
 
-MariaDB [praxisDB]> DESCRIBE tags;
+MariaDB [praxis_test_DB]> DESCRIBE tags;
 +-------------+--------------+------+-----+---------+----------------+
 | Field       | Type         | Null | Key | Default | Extra          |
 +-------------+--------------+------+-----+---------+----------------+
@@ -339,21 +340,21 @@ MariaDB [praxisDB]> DESCRIBE tags;
 | Name        | varchar(16)  | NO   | PRI | NULL    |                |
 | Description | varchar(256) | YES  |     | NULL    |                |
 +-------------+--------------+------+-----+---------+----------------+
-3 rows in set (0.003 sec)
+3 rows in set (0.002 sec)
 
 
 
 create article to tag table
 CREATE TABLE article_to_tag( ArticleID INT, TagID INT, PRIMARY KEY (ArticleID, TagID) );
 
-MariaDB [praxisDB]> DESCRIBE article_to_tag;
+MariaDB [praxis_test_DB]> DESCRIBE article_to_tag;
 +-----------+---------+------+-----+---------+-------+
 | Field     | Type    | Null | Key | Default | Extra |
 +-----------+---------+------+-----+---------+-------+
 | ArticleID | int(11) | NO   | PRI | NULL    |       |
 | TagID     | int(11) | NO   | PRI | NULL    |       |
 +-----------+---------+------+-----+---------+-------+
-2 rows in set (0.002 sec)
+2 rows in set (0.001 sec)
 
 # url
 INSERT INTO articles (URL) VALUES ("google.com/");

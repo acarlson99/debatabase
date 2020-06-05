@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -103,6 +105,65 @@ func generateTagSearchHandler(db *DB) func(w http.ResponseWriter, r *http.Reques
 	}
 }
 
+func generateArticleCSVHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		enableCors(&w)
+		reader := csv.NewReader(r.Body)
+		for {
+			// name,url,description,tags
+			fields, err := reader.Read()
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				log.Println("Error parsing CSV:", err)
+			}
+			if len(fields) != 4 {
+				log.Println("BAD NUMNER OF FIELDS")
+				continue
+			}
+			a := Article{
+				Name:        fields[0],
+				URL:         fields[1],
+				Description: fields[2],
+				Tags:        strings.Split(fields[3], ","),
+			}
+			_, err = db.InsertArticle(a)
+			if err != nil {
+				log.Println("Error inserting article:", err)
+			}
+		}
+	}
+}
+
+func generateTagCSVHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("AAAA")
+		enableCors(&w)
+		reader := csv.NewReader(r.Body)
+		for {
+			// name,description
+			fields, err := reader.Read()
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				log.Println("Error parsing CSV:", err)
+			}
+			if len(fields) != 2 {
+				log.Println("BAD NUMNER OF FIELDS")
+				continue
+			}
+			t := Tag{
+				Name:        fields[0],
+				Description: fields[1],
+			}
+			_, err = db.InsertTag(t)
+			if err != nil {
+				log.Println("Error inserting article:", err)
+			}
+		}
+	}
+}
+
 func generateArticleHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		enableCors(&w)
@@ -171,8 +232,10 @@ func CreateRouter(db *DB) *mux.Router {
 	router.HandleFunc("/api/search/tag", generateTagSearchHandler(db))
 
 	// upload DB
-	router.HandleFunc("/api/upload/article", generateArticleHandler(db)).Methods("POST") // create new article
-	router.HandleFunc("/api/upload/tag", generateTagHandler(db)).Methods("POST")         // create new tag
+	router.HandleFunc("/api/upload/article/csv", generateArticleCSVHandler(db)).Methods("POST") // create new article
+	router.HandleFunc("/api/upload/article", generateArticleHandler(db)).Methods("POST")        // create new article
+	router.HandleFunc("/api/upload/tag/csv", generateTagCSVHandler(db)).Methods("POST")         // create new tag
+	router.HandleFunc("/api/upload/tag", generateTagHandler(db)).Methods("POST")                // create new tag
 	router.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./frontend/index.html")
 	})
