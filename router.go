@@ -78,7 +78,7 @@ func generateTagSearchHandler(db *DB) func(w http.ResponseWriter, r *http.Reques
 		}
 		tagStr := parts["tags"]
 		limit, _ := strconv.Atoi(parts["limit"])
-		offset, _ := strconv.Atoi(parts["offset"])
+		offset, _ := strconv.Atoi(parts["offset"]) // NOTE: does nothing unless `limit` is specified
 		lookslike := parts["lookslike"]
 
 		sp := []string{}
@@ -181,7 +181,7 @@ func generateArticleHandler(db *DB) func(w http.ResponseWriter, r *http.Request)
 		}
 		a := Article{}
 		err = json.Unmarshal(body, &a)
-		if err != nil {
+		if err != nil || len(a.Name) == 0 {
 			if err != nil {
 				log.Println("Error unmarshalling data:", err)
 			}
@@ -214,7 +214,7 @@ func generateTagHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
 		}
 		a := Tag{}
 		err = json.Unmarshal(body, &a)
-		if err != nil || len(a.Name) == 0 || len(a.Description) == 0 {
+		if err != nil || len(a.Name) == 0 {
 			w.WriteHeader(400)
 			return
 		}
@@ -239,18 +239,16 @@ func CreateRouter(db *DB) *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 
 	// search
-	// returns info about articles
-	// curl -L -i $HOST_ADDRESS:$HOST_PORT/api/search/article/?'tags=search&limit=1&offset=0&lookslike=ooooogle'
 	router.HandleFunc("/api/search/article", generateArticleSearchHandler(db))
-	// return info about requested tags
-	// curl -L -i $HOST_ADDRESS:$HOST_PORT/api/search/tag/?'tags=search&limit=1&offset=0&lookslike=ooooogle'
 	router.HandleFunc("/api/search/tag", generateTagSearchHandler(db))
 
-	// upload DB
+	// upload
 	router.HandleFunc("/api/upload/article/csv", generateArticleCSVHandler(db)).Methods("POST") // create new article
 	router.HandleFunc("/api/upload/article", generateArticleHandler(db)).Methods("POST")        // create new article
 	router.HandleFunc("/api/upload/tag/csv", generateTagCSVHandler(db)).Methods("POST")         // create new tag
 	router.HandleFunc("/api/upload/tag", generateTagHandler(db)).Methods("POST")                // create new tag
+
+	// serve
 	router.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./frontend/index.html")
 	})

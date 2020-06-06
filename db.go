@@ -87,17 +87,15 @@ func (db *DB) TagNameExists(s string) (int64, bool) {
 func stringOrNil(i string) interface{} {
 	if len(i) > 0 {
 		return i
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func nullStringToString(s sql.NullString) string {
 	if s.Valid {
 		return s.String
-	} else {
-		return ""
 	}
+	return ""
 }
 
 // UnmarshalArticle takes sql.Rows from the `article` table and parses it into an array of Article structs
@@ -153,10 +151,10 @@ func UnmarshalTags(rows *sql.Rows) []Tag {
 
 // ArticleTags finds all tags associated with an article ID
 func (db *DB) ArticleTags(id int64) ([]Tag, error) {
-	s := "SELECT t.* " +
-		"FROM tags t, article_to_tag at " +
-		"WHERE at.ArticleID = ? " +
-		"AND at.TagID = t.ID;"
+	s := "SELECT t.*" +
+		" FROM tags t INNER JOIN article_to_tag at ON t.ID = at.TagID" +
+		" WHERE at.ArticleID = ?" +
+		" AND at.TagID = t.ID;"
 	rows, err := db.Query(s, id)
 	if err != nil {
 		return []Tag{}, err
@@ -182,18 +180,16 @@ func (db *DB) PopulateArticleTags(article Article) Article {
 // ArticlesWithTagsSearch returns `limit` articles whose tags match all supplied tags, offset by `offset`, whose names OR description match `lookslike`
 func (db *DB) ArticlesWithTagsSearch(tags []string, lookslike string, limit, offset int) ([]Article, error) {
 	var itags []interface{}
-	s := "SELECT a.* " +
-		"FROM article_to_tag at, articles a, tags t"
+	s := "SELECT a.*"
 
 	if len(tags) > 0 {
 		for _, t := range tags {
 			itags = append(itags, t)
 		}
-		s += " WHERE t.ID = at.TagID " +
-			"AND a.ID = at.ArticleID " +
-			"AND t.Name IN (?" + strings.Repeat(",?", len(tags)-1) + ")"
+		s += " FROM article_to_tag at INNER JOIN tags t ON at.TagID = t.ID INNER JOIN articles a ON at.ArticleID = a.ID" +
+			" WHERE t.Name IN (?" + strings.Repeat(",?", len(tags)-1) + ")"
 	} else {
-		s += " WHERE TRUE"
+		s += " FROM articles a WHERE TRUE"
 	}
 	if len(lookslike) > 0 {
 		itags = append(itags, lookslike, lookslike)
@@ -243,8 +239,8 @@ func (db *DB) TagSearch(tags []string, lookslike string, limit int, offset int) 
 		s += " TRUE"
 	}
 	if len(lookslike) > 0 {
-		itags = append(itags, lookslike)
-		s += " AND Name LIKE CONCAT('%',?,'%')"
+		itags = append(itags, lookslike, lookslike)
+		s += " AND (Name LIKE CONCAT('%',?,'%') OR Description LIKE CONCAT('%',?,'%'))"
 	}
 	s += " GROUP BY ID"
 	if limit > 0 {
