@@ -77,13 +77,15 @@ All searches handle arguments identically
 * limit - return at most `limit` results
 * offset - skip first `offset` results
 * lookslike - filter for name/description matching `lookslike`
+* orderby - order results by field.  Supported args are `name`, `description`, `id`(default)
+* reverse - reverse results.  `true` or `false`
 
 ### Examples
 
 ```
 Search for articles
 GET /api/search/article
-curl -L -i localhost:8080/api/search/article?tags=search&limit=1&offset=1&lookslike=ooooogle
+curl -L -i localhost:8080/api/search/article?tags=search&limit=1&offset=1&lookslike=ooooogle&orderby=name&reverse=true
 
 Search for tags
 GET /api/search/tag

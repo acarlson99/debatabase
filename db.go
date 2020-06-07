@@ -177,8 +177,21 @@ func (db *DB) PopulateArticleTags(article Article) Article {
 	return article
 }
 
+func findOrderby(s string) string {
+	switch s {
+	case "name":
+		return "Name"
+	case "description":
+		return "Description"
+	case "id":
+		return "ID"
+	default:
+		return "ID"
+	}
+}
+
 // ArticlesWithTagsSearch returns `limit` articles whose tags match all supplied tags, offset by `offset`, whose names OR description match `lookslike`
-func (db *DB) ArticlesWithTagsSearch(tags []string, lookslike string, limit, offset int) ([]Article, error) {
+func (db *DB) ArticlesWithTagsSearch(tags []string, lookslike, orderby string, reverse bool, limit, offset int) ([]Article, error) {
 	var itags []interface{}
 	s := "SELECT a.*"
 
@@ -198,6 +211,14 @@ func (db *DB) ArticlesWithTagsSearch(tags []string, lookslike string, limit, off
 	s += " GROUP BY a.ID"
 	if len(tags) > 0 {
 		s += " HAVING COUNT(a.ID)=" + strconv.Itoa(len(tags))
+	}
+	if len(orderby) > 0 || reverse {
+		s += " ORDER BY a." + findOrderby(orderby)
+		if reverse {
+			s += " DESC"
+		} else {
+			s += " ASC"
+		}
 	}
 	if limit > 0 {
 		itags = append(itags, limit)
@@ -226,7 +247,7 @@ func (db *DB) ArticlesWithTagsSearch(tags []string, lookslike string, limit, off
 
 // TagSearch returns `limit` tags whose names are in `tags`, offset by `offset`, whose names match `lookslike`
 // TagSearch returns a list of Tag structs given an array of tag names
-func (db *DB) TagSearch(tags []string, lookslike string, limit int, offset int) ([]Tag, error) {
+func (db *DB) TagSearch(tags []string, lookslike, orderby string, reverse bool, limit int, offset int) ([]Tag, error) {
 	s := "SELECT * FROM tags WHERE"
 
 	var itags []interface{}
@@ -243,6 +264,14 @@ func (db *DB) TagSearch(tags []string, lookslike string, limit int, offset int) 
 		s += " AND (Name LIKE CONCAT('%',?,'%') OR Description LIKE CONCAT('%',?,'%'))"
 	}
 	s += " GROUP BY ID"
+	if len(orderby) > 0 || reverse {
+		s += " ORDER BY " + findOrderby(orderby)
+		if reverse {
+			s += " DESC"
+		} else {
+			s += " ASC"
+		}
+	}
 	if limit > 0 {
 		itags = append(itags, limit)
 		s += " LIMIT ?"

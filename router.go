@@ -44,13 +44,15 @@ func generateArticleSearchHandler(db *DB) func(w http.ResponseWriter, r *http.Re
 		limit, _ := strconv.Atoi(parts["limit"])
 		offset, _ := strconv.Atoi(parts["offset"])
 		lookslike := parts["lookslike"]
+		orderby := parts["orderby"]
+		rev := parts["reverse"] == "true"
 
 		sp := []string{}
 		if len(tags) > 0 {
 			sp = strings.Split(tags, ",")
 		}
 
-		articles, err := db.ArticlesWithTagsSearch(sp, lookslike, limit, offset)
+		articles, err := db.ArticlesWithTagsSearch(sp, lookslike, orderby, rev, limit, offset)
 		if err != nil {
 			w.WriteHeader(500)
 			w.Write([]byte(fmt.Sprintf("%v", err)))
@@ -80,13 +82,15 @@ func generateTagSearchHandler(db *DB) func(w http.ResponseWriter, r *http.Reques
 		limit, _ := strconv.Atoi(parts["limit"])
 		offset, _ := strconv.Atoi(parts["offset"]) // NOTE: does nothing unless `limit` is specified
 		lookslike := parts["lookslike"]
+		orderby := parts["orderby"]
+		rev := parts["reverse"] == "true"
 
 		sp := []string{}
 		if len(tagStr) > 0 {
 			sp = strings.Split(tagStr, ",")
 		}
 
-		tags, err := db.TagSearch(sp, lookslike, limit, offset)
+		tags, err := db.TagSearch(sp, lookslike, orderby, rev, limit, offset)
 		if err != nil {
 			w.WriteHeader(500)
 			w.Write([]byte(fmt.Sprintf("%v", err)))
