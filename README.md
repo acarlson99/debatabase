@@ -30,11 +30,19 @@ Query OK, 1 row affected (0.000 sec)
 MariaDB [(none)]> 
 ```
 
-### Server
+## Deploy
 
 ```
+cd frontend
+npm run build
+cd ..
+
 export APP_ENV=dev      # for local development
-# set DB uname/password
+export MYSQL_PASSWORD=password
+export MYSQL_USER=root
+export MYSQL_DBNAME=db_name
+export HOST_ADDRESS=localhost
+export HOST_PORT=8080
 go run .
 ```
 

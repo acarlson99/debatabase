@@ -253,8 +253,6 @@ func CreateRouter(db *DB) *mux.Router {
 	router.HandleFunc("/api/upload/tag", generateTagHandler(db)).Methods("POST")                // create new tag
 
 	// serve
-	router.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./frontend/index.html")
-	})
+	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./frontend/build/")))
 	return router
 }
