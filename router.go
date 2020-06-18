@@ -8,15 +8,10 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
-)
-
-var (
-	nonAlphanumRE = regexp.MustCompile("[^a-zA-Z0-9]+")
 )
 
 func enableCors(w *http.ResponseWriter) {
@@ -33,226 +28,227 @@ func enableCors(w *http.ResponseWriter) {
 	// }
 }
 
-func generateArticleSearchHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		enableCors(&w)
-		parts := make(map[string]string)
-		for k, v := range r.URL.Query() {
-			parts[k] = v[0]
-		}
-		tags := parts["tags"]
-		limit, _ := strconv.Atoi(parts["limit"])
-		offset, _ := strconv.Atoi(parts["offset"])
-		lookslike := parts["lookslike"]
-		orderby := parts["orderby"]
-		rev := parts["reverse"] == "true"
+func generateArticleSearchHandler(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+	parts := make(map[string]string)
+	for k, v := range r.URL.Query() {
+		parts[k] = v[0]
+	}
+	tags := parts["tags"]
+	limit, _ := strconv.Atoi(parts["limit"])
+	offset, _ := strconv.Atoi(parts["offset"])
+	lookslike := parts["lookslike"]
+	orderby := parts["orderby"]
+	rev := parts["reverse"] == "true"
 
-		sp := []string{}
-		if len(tags) > 0 {
-			sp = strings.Split(tags, ",")
-		}
+	sp := []string{}
+	if len(tags) > 0 {
+		sp = strings.Split(tags, ",")
+	}
 
-		articles, err := db.ArticlesWithTagsSearch(sp, lookslike, orderby, rev, limit, offset)
-		if err != nil {
-			w.WriteHeader(500)
-			w.Write([]byte(fmt.Sprintf("%v", err)))
-			log.Println("Error querying tags:", err)
-			return
-		}
+	articles, err := db.ArticlesWithTagsSearch(sp, lookslike, orderby, rev, limit, offset)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Sprintf("%v", err)))
+		log.Println("Error querying tags:", err)
+		return
+	}
 
-		resp, err := json.Marshal(articles)
-		if err != nil {
-			w.WriteHeader(500)
-			w.Write([]byte(fmt.Sprintf("%v", err)))
-			log.Println("Error marshalling response:", err)
-		} else {
-			w.Write(resp)
-		}
+	resp, err := json.Marshal(articles)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Sprintf("%v", err)))
+		log.Println("Error marshalling response:", err)
+	} else {
+		w.Write(resp)
 	}
 }
 
-func generateTagSearchHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		enableCors(&w)
-		parts := make(map[string]string)
-		for k, v := range r.URL.Query() {
-			parts[k] = v[0]
-		}
-		tagStr := parts["tags"]
-		limit, _ := strconv.Atoi(parts["limit"])
-		offset, _ := strconv.Atoi(parts["offset"]) // NOTE: does nothing unless `limit` is specified
-		lookslike := parts["lookslike"]
-		orderby := parts["orderby"]
-		rev := parts["reverse"] == "true"
+func generateTagSearchHandler(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+	parts := make(map[string]string)
+	for k, v := range r.URL.Query() {
+		parts[k] = v[0]
+	}
+	tagStr := parts["tags"]
+	limit, _ := strconv.Atoi(parts["limit"])
+	offset, _ := strconv.Atoi(parts["offset"]) // NOTE: does nothing unless `limit` is specified
+	lookslike := parts["lookslike"]
+	orderby := parts["orderby"]
+	rev := parts["reverse"] == "true"
 
-		sp := []string{}
-		if len(tagStr) > 0 {
-			sp = strings.Split(tagStr, ",")
-		}
+	sp := []string{}
+	if len(tagStr) > 0 {
+		sp = strings.Split(tagStr, ",")
+	}
 
-		tags, err := db.TagSearch(sp, lookslike, orderby, rev, limit, offset)
-		if err != nil {
-			w.WriteHeader(500)
-			w.Write([]byte(fmt.Sprintf("%v", err)))
-			log.Println("Error querying tags:", err)
-			return
-		}
+	tags, err := db.TagSearch(sp, lookslike, orderby, rev, limit, offset)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Sprintf("%v", err)))
+		log.Println("Error querying tags:", err)
+		return
+	}
 
-		resp, err := json.Marshal(tags)
-		if err != nil {
-			w.WriteHeader(500)
-			w.Write([]byte(fmt.Sprintf("%v", err)))
-			log.Println("Error marshalling response:", err)
-		} else {
-			w.Write(resp)
-		}
+	resp, err := json.Marshal(tags)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Sprintf("%v", err)))
+		log.Println("Error marshalling response:", err)
+	} else {
+		w.Write(resp)
 	}
 }
 
-func generateArticleCSVHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		enableCors(&w)
-		reader := csv.NewReader(r.Body)
-		for {
-			// name,url,description,tags
-			fields, err := reader.Read()
-			if err == io.EOF {
-				break
-			} else if err != nil {
-				log.Println("Error parsing CSV:", err)
-			}
-			if len(fields) != 4 {
-				log.Println("BAD NUMNER OF FIELDS")
-				continue
-			}
-			a := Article{
-				Name:        fields[0],
-				URL:         fields[1],
-				Description: fields[2],
-				Tags:        strings.Split(fields[3], ","),
-			}
-			_, err = db.InsertArticle(a)
-			if err != nil {
-				log.Println("Error inserting article:", err)
-			}
+func generateArticleCSVHandler(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+	reader := csv.NewReader(r.Body)
+	for {
+		// name,url,description,tags
+		fields, err := reader.Read()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			log.Println("Error parsing CSV:", err)
 		}
-		err := r.Body.Close()
-		if err != nil {
-			log.Println("Error closing http.Request body:", err)
+		if len(fields) != 4 {
+			log.Println("BAD NUMNER OF FIELDS")
+			continue
 		}
-	}
-}
-
-func generateTagCSVHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		enableCors(&w)
-		reader := csv.NewReader(r.Body)
-		for {
-			// name,description
-			fields, err := reader.Read()
-			if err == io.EOF {
-				break
-			} else if err != nil {
-				log.Println("Error parsing CSV:", err)
-			}
-			if len(fields) != 2 {
-				log.Println("BAD NUMNER OF FIELDS")
-				continue
-			}
-			t := Tag{
-				Name:        fields[0],
-				Description: fields[1],
-			}
-			_, err = db.InsertTag(t)
-			if err != nil {
-				log.Println("Error inserting article:", err)
-			}
+		a := Article{
+			Name:        fields[0],
+			URL:         fields[1],
+			Description: fields[2],
+			Tags:        strings.Split(fields[3], ","),
 		}
-		err := r.Body.Close()
-		if err != nil {
-			log.Println("Error closing http.Request body:", err)
-		}
-	}
-}
-
-func generateArticleHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		enableCors(&w)
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			log.Println("Error reading body:", err)
-			return
-		}
-		a := Article{}
-		err = json.Unmarshal(body, &a)
-		if err != nil || len(a.Name) == 0 {
-			if err != nil {
-				log.Println("Error unmarshalling data:", err)
-			}
-			w.WriteHeader(400)
-			return
-		}
-		fmt.Printf("%+v\n", a)
-
-		err = r.Body.Close()
-		if err != nil {
-			log.Println("Error closing http.Request body:", err)
-		}
-
 		_, err = db.InsertArticle(a)
 		if err != nil {
-			w.WriteHeader(500)
-			w.Write([]byte(fmt.Sprintf("%v", err)))
 			log.Println("Error inserting article:", err)
 		}
+	}
+	err := r.Body.Close()
+	if err != nil {
+		log.Println("Error closing http.Request body:", err)
 	}
 }
 
-func generateTagHandler(db *DB) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		enableCors(&w)
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			log.Println("Error reading body:", err)
-			return
+func generateTagCSVHandler(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+	reader := csv.NewReader(r.Body)
+	for {
+		// name,description
+		fields, err := reader.Read()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			log.Println("Error parsing CSV:", err)
 		}
-		a := Tag{}
-		err = json.Unmarshal(body, &a)
-		if err != nil || len(a.Name) == 0 {
-			w.WriteHeader(400)
-			return
+		if len(fields) != 2 {
+			log.Println("BAD NUMNER OF FIELDS")
+			continue
 		}
-		fmt.Printf("%+v\n", a)
-
-		err = r.Body.Close()
-		if err != nil {
-			log.Println("Error closing http.Request body:", err)
+		t := Tag{
+			Name:        fields[0],
+			Description: fields[1],
 		}
-
-		_, err = db.InsertTag(a)
+		_, err = db.InsertTag(t)
 		if err != nil {
-			w.WriteHeader(500)
-			w.Write([]byte(fmt.Sprintf("%v", err)))
 			log.Println("Error inserting article:", err)
 		}
 	}
+	err := r.Body.Close()
+	if err != nil {
+		log.Println("Error closing http.Request body:", err)
+	}
+}
+
+func generateArticleHandler(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Println("Error reading body:", err)
+		return
+	}
+	a := Article{}
+	err = json.Unmarshal(body, &a)
+	if err != nil || len(a.Name) == 0 {
+		if err != nil {
+			log.Println("Error unmarshalling data:", err)
+		}
+		w.WriteHeader(400)
+		return
+	}
+	fmt.Printf("%+v\n", a)
+
+	err = r.Body.Close()
+	if err != nil {
+		log.Println("Error closing http.Request body:", err)
+	}
+
+	_, err = db.InsertArticle(a)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Sprintf("%v", err)))
+		log.Println("Error inserting article:", err)
+	}
+}
+
+func generateTagHandler(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Println("Error reading body:", err)
+		return
+	}
+	a := Tag{}
+	err = json.Unmarshal(body, &a)
+	if err != nil || len(a.Name) == 0 {
+		w.WriteHeader(400)
+		return
+	}
+	fmt.Printf("%+v\n", a)
+
+	err = r.Body.Close()
+	if err != nil {
+		log.Println("Error closing http.Request body:", err)
+	}
+
+	_, err = db.InsertTag(a)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Sprintf("%v", err)))
+		log.Println("Error inserting article:", err)
+	}
+}
+
+func generateAuthHandler(w http.ResponseWriter, r *http.Request) {
+	values := mux.Vars(r)
+	fmt.Println(values["uname"])
+	fmt.Println(values["passwd"])
+	fmt.Println(values)
 }
 
 // CreateRouter returns a new mux.Router with appropriately registered paths
-func CreateRouter(db *DB) *mux.Router {
-	router := mux.NewRouter().StrictSlash(true)
+func CreateRouter() *mux.Router {
+	r := mux.NewRouter().StrictSlash(true)
 
 	// search
-	router.HandleFunc("/api/search/article", generateArticleSearchHandler(db))
-	router.HandleFunc("/api/search/tag", generateTagSearchHandler(db))
+	r.HandleFunc("/api/search/article", generateArticleSearchHandler)
+	r.HandleFunc("/api/search/tag", generateTagSearchHandler)
 
 	// upload
-	router.HandleFunc("/api/upload/article/csv", generateArticleCSVHandler(db)).Methods("POST") // create new article
-	router.HandleFunc("/api/upload/article", generateArticleHandler(db)).Methods("POST")        // create new article
-	router.HandleFunc("/api/upload/tag/csv", generateTagCSVHandler(db)).Methods("POST")         // create new tag
-	router.HandleFunc("/api/upload/tag", generateTagHandler(db)).Methods("POST")                // create new tag
+	// TODO: add `edit` feature for articles
+	r.HandleFunc("/api/upload/article/csv", generateArticleCSVHandler).Methods("POST") // create new article
+	r.HandleFunc("/api/upload/article", generateArticleHandler).Methods("POST")        // create new article
+	r.HandleFunc("/api/upload/tag/csv", generateTagCSVHandler).Methods("POST")         // create new tag
+	r.HandleFunc("/api/upload/tag", generateTagHandler).Methods("POST")                // create new tag
+
+	// user
+	// TODO: add users
+	r.HandleFunc("/api/user/auth/{uname}/{passwd}", generateAuthHandler)   // sends Json Web Token to client if uname/passwd match DB
+	r.HandleFunc("/api/user/create/{uname}/{passwd}", generateAuthHandler) // creates user
 
 	// serve
-	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./frontend/build/")))
-	return router
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./frontend/build/")))
+	return r
 }

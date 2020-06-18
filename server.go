@@ -10,6 +10,12 @@ import (
 	"github.com/joho/godotenv"
 )
 
+var (
+	hostPort string
+	hostAddr string
+	db       *DB
+)
+
 type Article struct {
 	ID          int64    `json:"id"` // NOTE: only updated when removing from DB
 	Name        string   `json:"name"`
@@ -51,7 +57,8 @@ func main() {
 	uname := os.Getenv("MYSQL_USER")
 	passwd := os.Getenv("MYSQL_PASSWORD")
 	dbname := os.Getenv("MYSQL_DBNAME")
-	db, err := DBConnect(uname, passwd, dbname)
+	var err error
+	db, err = DBConnect(uname, passwd, dbname)
 	if err != nil {
 		fmt.Println("Failed to connect to MySQL DB.  Is DB running?")
 		fmt.Println(err)
@@ -69,9 +76,9 @@ func main() {
 		os.Exit(0)
 	}()
 
-	router := CreateRouter(db)
-	addr := os.Getenv("HOST_ADDRESS")
-	port := os.Getenv("HOST_PORT")
-	fmt.Println("Listening and serving `" + addr + ":" + port + "`...")
-	http.ListenAndServe(addr+":"+port, router)
+	hostAddr = os.Getenv("HOST_ADDRESS")
+	hostPort = os.Getenv("HOST_PORT")
+	r := CreateRouter()
+	fmt.Println("Listening and serving `" + hostAddr + ":" + hostPort + "`...")
+	http.ListenAndServe(hostAddr+":"+hostPort, r)
 }
