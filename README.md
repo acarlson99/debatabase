@@ -6,6 +6,8 @@
 
 * go version go1.13.11
 * mysql/mariadb
+* [swaggo](https://github.com/swaggo/swag)
+* node/npm
 
 ### DB
 
@@ -37,12 +39,14 @@ cd frontend
 npm run build
 cd ..
 
+swag init -g server.go
+
 export APP_ENV=dev      # for local development
 export MYSQL_PASSWORD=password
 export MYSQL_USER=root
 export MYSQL_DBNAME=db_name
 export HOST_ADDRESS=localhost
-export HOST_PORT=8080
+export HOST_PORT=9000
 go run .
 ```
 
@@ -56,21 +60,21 @@ go run .
 
 ```bash
 # upload tags
-curl -L -i localhost:8080/api/upload/tag --data '{"name":"engine","description":"a thing that does"}'
-curl -L -i localhost:8080/api/upload/tag --data '{"name":"search","description":"a thing that finds"}'
-curl -L -i localhost:8080/api/upload/tag --data '{"name":"tank"}'
+curl -L -i localhost:9000/api/upload/tag --data '{"name":"engine","description":"a thing that does"}'
+curl -L -i localhost:9000/api/upload/tag --data '{"name":"search","description":"a thing that finds"}'
+curl -L -i localhost:9000/api/upload/tag --data '{"name":"tank"}'
 # upload article
-curl -L -i localhost:8080/api/upload/article --data '{"name":"googel","url":"google.com","tags":["engine","search"]}'
+curl -L -i localhost:9000/api/upload/article --data '{"name":"googel","url":"google.com","tags":["engine","search"]}'
 # search for 'engine' tag
-curl -L -i localhost:8080/api/search/tag?tags=engine
+curl -L -i localhost:9000/api/search/tag?tags=engine
 > [{"id":24,"name":"engine","description":"a thing that does"}]
 # search for all articles tagged 'engine'
-curl -L -i localhost:8080/api/search/article?tags=engine
+curl -L -i localhost:9000/api/search/article?tags=engine
 > [{"id":1,"name":"googel","url":"google.com","description":"","tags":["engine","search"]}]
 
 # upload from CSV
-curl -L -i localhost:8080/api/upload/tag/csv --data "`cat resources/tags.csv`"
-curl -L -i localhost:8080/api/upload/article/csv --data "`cat resources/articles.csv`"
+curl -L -i localhost:9000/api/upload/tag/csv --data "`cat resources/tags.csv`"
+curl -L -i localhost:9000/api/upload/article/csv --data "`cat resources/articles.csv`"
 ```
 
 # Endpoints
@@ -93,11 +97,11 @@ All searches handle arguments identically
 ```
 Search for articles
 GET /api/search/article
-curl -L -i localhost:8080/api/search/article?tags=search&limit=1&offset=1&lookslike=ooooogle&orderby=name&reverse=true
+curl -L -i localhost:9000/api/search/article?tags=search&limit=1&offset=1&lookslike=ooooogle&orderby=name&reverse=true
 
 Search for tags
 GET /api/search/tag
-curl -L -i localhost:8080/api/search/tag?tags=search&limit=1&offset=1&lookslike=ooooogle
+curl -L -i localhost:9000/api/search/tag?tags=search&limit=1&offset=1&lookslike=ooooogle
 ```
 
 ## Upload

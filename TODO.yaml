@@ -2,3 +2,4 @@ TODO:
   * update API docs
   * update frontend
   * add users
+  * make response errors print in standardized format

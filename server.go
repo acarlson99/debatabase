@@ -17,7 +17,7 @@ var (
 )
 
 type Article struct {
-	ID          int64    `json:"id"` // NOTE: only updated when removing from DB
+	ID          int64    `json:"id,omitempty"` // NOTE: only updated when removing from DB
 	Name        string   `json:"name"`
 	URL         string   `json:"url"`
 	Description string   `json:"description"`
@@ -25,7 +25,7 @@ type Article struct {
 }
 
 type Tag struct {
-	ID          int64  `json:"id"` // NOTE: only updated when removing from DB
+	ID          int64  `json:"id,omitempty"` // NOTE: only updated when removing from DB
 	Name        string `json:"name"`
 	Description string `json:"description"`
 }
@@ -41,7 +41,11 @@ func CheckEnvVars() {
 	}
 }
 
+// @title Swagger Example API
+// @version 1.0
+// @description DB
 func main() {
+
 	if os.Getenv("APP_ENV") == "production" {
 		fmt.Println("Running in production mode")
 	} else {
