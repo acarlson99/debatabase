@@ -16,7 +16,17 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-func generateArticleSearchHandler(w http.ResponseWriter, r *http.Request) {
+// @Summary Search articles by name
+// @Param tags query string false "Tag names" collectionFormat(csv)
+// @Param limit query integer false "Maximum number of results"
+// @Param offset query integer false "Results to skip"
+// @Param lookslike query string false "Filter for matching names/descriptions"
+// @Param orderby query string false "Field by which to order results" Enums(id, name, description)
+// @Produce json
+// @Success 200 {array} main.Article "All matching articles"
+// @Failure 500 {string} string "Internal error"
+// @Router /api/search/article?articles=engine,train&limit=5&offset=5&lookslike=american&orderby=name [GET]
+func searchArticle(w http.ResponseWriter, r *http.Request) {
 	parts := make(map[string]string)
 	for k, v := range r.URL.Query() {
 		parts[k] = v[0]
@@ -61,7 +71,7 @@ func generateArticleSearchHandler(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {array} main.Tag "All matching tags"
 // @Failure 500 {string} string "Internal error"
 // @Router /api/search/tag?tags=engine,train&limit=5&offset=5&lookslike=american&orderby=name [GET]
-func generateTagSearchHandler(w http.ResponseWriter, r *http.Request) {
+func searchTag(w http.ResponseWriter, r *http.Request) {
 	parts := make(map[string]string)
 	for k, v := range r.URL.Query() {
 		parts[k] = v[0]
@@ -96,7 +106,7 @@ func generateTagSearchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func generateArticleCSVHandler(w http.ResponseWriter, r *http.Request) {
+func uploadCSVArticle(w http.ResponseWriter, r *http.Request) {
 	reader := csv.NewReader(r.Body)
 	for {
 		// name,url,description,tags
@@ -127,7 +137,7 @@ func generateArticleCSVHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func generateTagCSVHandler(w http.ResponseWriter, r *http.Request) {
+func uploadCSVTag(w http.ResponseWriter, r *http.Request) {
 	reader := csv.NewReader(r.Body)
 	for {
 		// name,description
@@ -159,8 +169,12 @@ func generateTagCSVHandler(w http.ResponseWriter, r *http.Request) {
 // @Summary Create Article
 // @Accept json
 // @Param tag body main.DocArticle true "Article data"
+// @Success 200 "Ok"
+// @Failure 400 "Bad request"
+// @Failure 422 "Invalid tag(s)"
+// @Failure 500 {string} string "Internal error"
 // @Router /api/upload/article [POST]
-func generateArticleHandler(w http.ResponseWriter, r *http.Request) {
+func uploadArticle(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Println("Error reading body:", err)
@@ -182,7 +196,11 @@ func generateArticleHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println("Error closing http.Request body:", err)
 	}
 
-	// TODO: check if all tags exist
+	// check if all tags exist
+	if !db.TagNamesExist(a.Tags...) {
+		w.WriteHeader(422)
+		return
+	}
 
 	_, err = db.InsertArticle(a)
 	if err != nil {
@@ -195,8 +213,12 @@ func generateArticleHandler(w http.ResponseWriter, r *http.Request) {
 // @Summary Create Tag
 // @Accept  json
 // @Param tag body main.DocTag true "Tag data"
+// @Success 200 "Ok"
+// @Failure 400 "Bad request"
+// @Failure 403 "Duplicate tag"
+// @Failure 500 {string} string "Internal error"
 // @Router /api/upload/tag [POST]
-func generateTagHandler(w http.ResponseWriter, r *http.Request) {
+func uploadTag(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Println("Error reading body:", err)
@@ -210,7 +232,12 @@ func generateTagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Printf("%+v\n", a)
 
-	// TODO: check if tag already exists
+	// check duplicates
+	if _, r := db.TagNameExists(a.Name); r {
+		w.WriteHeader(403)
+		log.Println("Not inserting tag. Already exists")
+		return
+	}
 
 	err = r.Body.Close()
 	if err != nil {
@@ -248,21 +275,19 @@ func CreateRouter() *mux.Router {
 	// swagger serve
 	r.PathPrefix("/swagger/").Handler(httpSwagger.Handler(
 		httpSwagger.URL("doc.json"),
-		httpSwagger.DeepLinking(true),
-		httpSwagger.DocExpansion("none"),
-		httpSwagger.DomID("#swagger-ui"),
+		// httpSwagger.DeepLinking(true),
 	))
 
 	// search
-	r.HandleFunc("/api/search/article", generateArticleSearchHandler)
-	r.HandleFunc("/api/search/tag", generateTagSearchHandler)
+	r.HandleFunc("/api/search/article", searchArticle)
+	r.HandleFunc("/api/search/tag", searchTag)
 
 	// upload
 	// TODO: add `edit` feature for articles
-	r.HandleFunc("/api/upload/article/csv", generateArticleCSVHandler).Methods("POST") // create new article
-	r.HandleFunc("/api/upload/article", generateArticleHandler).Methods("POST")        // create new article
-	r.HandleFunc("/api/upload/tag/csv", generateTagCSVHandler).Methods("POST")         // create new tag
-	r.HandleFunc("/api/upload/tag", generateTagHandler).Methods("POST")                // create new tag
+	r.HandleFunc("/api/upload/article/csv", uploadCSVArticle).Methods("POST") // create new article
+	r.HandleFunc("/api/upload/article", uploadArticle).Methods("POST")        // create new article
+	r.HandleFunc("/api/upload/tag/csv", uploadCSVTag).Methods("POST")         // create new tag
+	r.HandleFunc("/api/upload/tag", uploadTag).Methods("POST")                // create new tag
 
 	// user
 	// TODO: add users

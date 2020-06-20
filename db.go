@@ -84,6 +84,16 @@ func (db *DB) TagNameExists(s string) (int64, bool) {
 	return id, exists
 }
 
+// TagNamesExist is TagNameExists in a loop
+func (db *DB) TagNamesExist(s ...string) bool {
+	for _, t := range s {
+		if _, r := db.TagNameExists(t); !r {
+			return false
+		}
+	}
+	return true
+}
+
 func stringOrNil(i string) interface{} {
 	if len(i) > 0 {
 		return i
