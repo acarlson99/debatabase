@@ -182,6 +182,8 @@ func generateArticleHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println("Error closing http.Request body:", err)
 	}
 
+	// TODO: check if all tags exist
+
 	_, err = db.InsertArticle(a)
 	if err != nil {
 		w.WriteHeader(500)
@@ -207,6 +209,8 @@ func generateTagHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Printf("%+v\n", a)
+
+	// TODO: check if tag already exists
 
 	err = r.Body.Close()
 	if err != nil {
@@ -238,6 +242,8 @@ func enableCors(h http.Handler) http.Handler {
 // CreateRouter returns a new mux.Router with appropriately registered paths
 func CreateRouter() *mux.Router {
 	r := mux.NewRouter().StrictSlash(true)
+
+	r.Use(enableCors)
 
 	// swagger serve
 	r.PathPrefix("/swagger/").Handler(httpSwagger.Handler(
