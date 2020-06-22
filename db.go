@@ -108,9 +108,9 @@ func nullStringToString(s sql.NullString) string {
 	return ""
 }
 
-// UnmarshalArticle takes sql.Rows from the `article` table and parses it into an array of Article structs
+// UnmarshalArticles takes sql.Rows from the `article` table and parses it into an array of Article structs
 // NOTE: does NOT populate `tags` field
-func UnmarshalArticle(rows *sql.Rows) []Article {
+func UnmarshalArticles(rows *sql.Rows) []Article {
 	articles := []Article{}
 	if rows == nil {
 		return articles
@@ -200,6 +200,23 @@ func findOrderby(s string) string {
 	}
 }
 
+// ArticleByID searches for all articles with an ID
+func (db *DB) ArticleByID(id int) ([]Article, error) {
+	s := "SELECT * FROM articles WHERE ID=?;"
+	rows, err := db.Query(s, id)
+	if err != nil {
+		return []Article{}, err
+	}
+	articles := UnmarshalArticles(rows)
+	rows.Close()
+
+	for ii := range articles {
+		articles[ii] = db.PopulateArticleTags(articles[ii])
+	}
+
+	return articles, nil
+}
+
 // ArticlesWithTagsSearch returns `limit` articles whose tags match all supplied tags, offset by `offset`, whose names OR description match `lookslike`
 func (db *DB) ArticlesWithTagsSearch(tags []string, lookslike, orderby string, reverse bool, limit, offset int) ([]Article, error) {
 	var itags []interface{}
@@ -245,7 +262,7 @@ func (db *DB) ArticlesWithTagsSearch(tags []string, lookslike, orderby string, r
 		return []Article{}, err
 	}
 
-	articles := UnmarshalArticle(rows)
+	articles := UnmarshalArticles(rows)
 	rows.Close()
 
 	for ii := range articles {
@@ -253,6 +270,19 @@ func (db *DB) ArticlesWithTagsSearch(tags []string, lookslike, orderby string, r
 	}
 
 	return articles, nil
+}
+
+// TagByID searches for all tags with an ID
+func (db *DB) TagByID(id int) ([]Tag, error) {
+	s := "SELECT * FROM tags WHERE ID=?;"
+	rows, err := db.Query(s, id)
+	if err != nil {
+		return []Tag{}, err
+	}
+	tags := UnmarshalTags(rows)
+	rows.Close()
+
+	return tags, nil
 }
 
 // TagSearch returns `limit` tags whose names are in `tags`, offset by `offset`, whose names match `lookslike`

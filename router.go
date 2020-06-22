@@ -19,7 +19,7 @@ import (
 // @Summary Search articles by name
 // @Param tags query string false "Tag names" collectionFormat(csv)
 // @Param limit query integer false "Maximum number of results"
-// @Param offset query integer false "Results to skip"
+// @Param offset query integer false "Results to skip.  Does nothing unless 'limit' is specified"
 // @Param lookslike query string false "Filter for matching names/descriptions"
 // @Param orderby query string false "Field by which to order results" Enums(id, name, description)
 // @Produce json
@@ -61,10 +61,36 @@ func searchArticle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// @Summary Search articles by name
+// @Param id path integer false "Filter by ID"
+// @Produce json
+// @Success 200 {array} main.Article "All matching articles"
+// @Failure 500 {string} string "Internal error"
+// @Router /api/search/article/{id} [GET]
+func searchArticleID(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(mux.Vars(r)["id"])
+	articles, err := db.ArticleByID(id)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Sprintf("%v", err)))
+		log.Println("Error querying tags:", err)
+		return
+	}
+
+	resp, err := json.Marshal(articles)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Sprintf("%v", err)))
+		log.Println("Error marshalling response:", err)
+	} else {
+		w.Write(resp)
+	}
+}
+
 // @Summary Search tags by name
 // @Param tags query string false "Tag names" collectionFormat(csv)
 // @Param limit query integer false "Maximum number of results"
-// @Param offset query integer false "Results to skip"
+// @Param offset query integer false "Results to skip.  Does nothing unless 'limit' is specified"
 // @Param lookslike query string false "Filter for matching names/descriptions"
 // @Param orderby query string false "Field by which to order results" Enums(id, name, description)
 // @Produce json
@@ -89,6 +115,32 @@ func searchTag(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tags, err := db.TagSearch(sp, lookslike, orderby, rev, limit, offset)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Sprintf("%v", err)))
+		log.Println("Error querying tags:", err)
+		return
+	}
+
+	resp, err := json.Marshal(tags)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Sprintf("%v", err)))
+		log.Println("Error marshalling response:", err)
+	} else {
+		w.Write(resp)
+	}
+}
+
+// @Summary Search tags by name
+// @Param id path integer false "Filter by ID"
+// @Produce json
+// @Success 200 {array} main.Tag "All matching tags"
+// @Failure 500 {string} string "Internal error"
+// @Router /api/search/tag/{id} [GET]
+func searchTagID(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(mux.Vars(r)["id"])
+	tags, err := db.TagByID(id)
 	if err != nil {
 		w.WriteHeader(500)
 		w.Write([]byte(fmt.Sprintf("%v", err)))
@@ -279,7 +331,9 @@ func CreateRouter() *mux.Router {
 	))
 
 	// search
+	r.HandleFunc("/api/search/article/{id}", searchArticleID)
 	r.HandleFunc("/api/search/article", searchArticle)
+	r.HandleFunc("/api/search/tag/{id}", searchTagID)
 	r.HandleFunc("/api/search/tag", searchTag)
 
 	// upload
