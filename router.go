@@ -304,11 +304,20 @@ func uploadTag(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func editArticle(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(501)
+}
+
+func editTag(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(501)
+}
+
 func generateAuthHandler(w http.ResponseWriter, r *http.Request) {
 	values := mux.Vars(r)
 	fmt.Println(values["uname"])
 	fmt.Println(values["passwd"])
 	fmt.Println(values)
+	w.WriteHeader(501)
 }
 
 func enableCors(h http.Handler) http.Handler {
@@ -337,11 +346,15 @@ func CreateRouter() *mux.Router {
 	r.HandleFunc("/api/search/tag", searchTag)
 
 	// upload
-	// TODO: add `edit` feature for articles
 	r.HandleFunc("/api/upload/article/csv", uploadCSVArticle).Methods("POST") // create new article
 	r.HandleFunc("/api/upload/article", uploadArticle).Methods("POST")        // create new article
 	r.HandleFunc("/api/upload/tag/csv", uploadCSVTag).Methods("POST")         // create new tag
 	r.HandleFunc("/api/upload/tag", uploadTag).Methods("POST")                // create new tag
+
+	// edit
+	// TODO: add `edit` feature for articles
+	r.HandleFunc("/api/edit/article/{id}", editArticle)
+	r.HandleFunc("/api/edit/tag/{id}", editTag)
 
 	// user
 	// TODO: add users
