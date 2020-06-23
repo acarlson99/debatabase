@@ -108,6 +108,34 @@ func nullStringToString(s sql.NullString) string {
 	return ""
 }
 
+// ArticleTags finds all tags associated with an article ID
+func (db *DB) ArticleTags(id int64) ([]Tag, error) {
+	s := "SELECT t.*" +
+		" FROM tags t INNER JOIN article_to_tag at ON t.ID = at.TagID" +
+		" WHERE at.ArticleID = ?" +
+		" AND at.TagID = t.ID;"
+	rows, err := db.Query(s, id)
+	if err != nil {
+		return []Tag{}, err
+	}
+
+	tags := UnmarshalTags(rows)
+	rows.Close()
+	return tags, nil
+}
+
+// PopulateArticleTags adds tags to existing article struct based on article.ID
+func (db *DB) PopulateArticleTags(article Article) Article {
+	tags, err := db.ArticleTags(article.ID)
+	if err != nil {
+		return article
+	}
+	for _, t := range tags {
+		article.Tags = append(article.Tags, t.Name)
+	}
+	return article
+}
+
 // UnmarshalArticles takes sql.Rows from the `article` table and parses it into an array of Article structs
 // NOTE: does NOT populate `tags` field
 func UnmarshalArticles(rows *sql.Rows) []Article {
@@ -159,34 +187,6 @@ func UnmarshalTags(rows *sql.Rows) []Tag {
 	return tags
 }
 
-// ArticleTags finds all tags associated with an article ID
-func (db *DB) ArticleTags(id int64) ([]Tag, error) {
-	s := "SELECT t.*" +
-		" FROM tags t INNER JOIN article_to_tag at ON t.ID = at.TagID" +
-		" WHERE at.ArticleID = ?" +
-		" AND at.TagID = t.ID;"
-	rows, err := db.Query(s, id)
-	if err != nil {
-		return []Tag{}, err
-	}
-
-	tags := UnmarshalTags(rows)
-	rows.Close()
-	return tags, nil
-}
-
-// PopulateArticleTags adds tags to existing article struct based on article.ID
-func (db *DB) PopulateArticleTags(article Article) Article {
-	tags, err := db.ArticleTags(article.ID)
-	if err != nil {
-		return article
-	}
-	for _, t := range tags {
-		article.Tags = append(article.Tags, t.Name)
-	}
-	return article
-}
-
 func findOrderby(s string) string {
 	switch s {
 	case "name":
@@ -198,23 +198,6 @@ func findOrderby(s string) string {
 	default:
 		return "ID"
 	}
-}
-
-// ArticleByID searches for all articles with an ID
-func (db *DB) ArticleByID(id int) ([]Article, error) {
-	s := "SELECT * FROM articles WHERE ID=?;"
-	rows, err := db.Query(s, id)
-	if err != nil {
-		return []Article{}, err
-	}
-	articles := UnmarshalArticles(rows)
-	rows.Close()
-
-	for ii := range articles {
-		articles[ii] = db.PopulateArticleTags(articles[ii])
-	}
-
-	return articles, nil
 }
 
 // ArticlesWithTagsSearch returns `limit` articles whose tags match all supplied tags, offset by `offset`, whose names OR description match `lookslike`
@@ -272,19 +255,6 @@ func (db *DB) ArticlesWithTagsSearch(tags []string, lookslike, orderby string, r
 	return articles, nil
 }
 
-// TagByID searches for all tags with an ID
-func (db *DB) TagByID(id int) ([]Tag, error) {
-	s := "SELECT * FROM tags WHERE ID=?;"
-	rows, err := db.Query(s, id)
-	if err != nil {
-		return []Tag{}, err
-	}
-	tags := UnmarshalTags(rows)
-	rows.Close()
-
-	return tags, nil
-}
-
 // TagSearch returns `limit` tags whose names are in `tags`, offset by `offset`, whose names match `lookslike`
 // TagSearch returns a list of Tag structs given an array of tag names
 func (db *DB) TagSearch(tags []string, lookslike, orderby string, reverse bool, limit int, offset int) ([]Tag, error) {
@@ -333,6 +303,38 @@ func (db *DB) TagSearch(tags []string, lookslike, orderby string, reverse bool, 
 	return rtags, nil
 }
 
+// ArticleByID searches for all articles with an ID
+func (db *DB) ArticleByID(id int) ([]Article, error) {
+	// TODO: make this return single article
+	s := "SELECT * FROM articles WHERE ID=?;"
+	rows, err := db.Query(s, id)
+	if err != nil {
+		return []Article{}, err
+	}
+	articles := UnmarshalArticles(rows)
+	rows.Close()
+
+	for ii := range articles {
+		articles[ii] = db.PopulateArticleTags(articles[ii])
+	}
+
+	return articles, nil
+}
+
+// TagByID searches for all tags with an ID
+func (db *DB) TagByID(id int) ([]Tag, error) {
+	// TODO: make this return single tag
+	s := "SELECT * FROM tags WHERE ID=?;"
+	rows, err := db.Query(s, id)
+	if err != nil {
+		return []Tag{}, err
+	}
+	tags := UnmarshalTags(rows)
+	rows.Close()
+
+	return tags, nil
+}
+
 // InsertArticleTag links an article to a tag, returning ID of inserted element
 func (db *DB) InsertArticleTag(articleID int64, tagID int64) (int64, error) {
 	res, err := db.Exec("INSERT INTO article_to_tag (ArticleID, TagID) VALUES (?, ?);", articleID, tagID)
@@ -342,21 +344,6 @@ func (db *DB) InsertArticleTag(articleID int64, tagID int64) (int64, error) {
 	id, err := res.LastInsertId()
 	if err != nil {
 		return 0, err
-	}
-	return id, nil
-}
-
-// InsertTag inserts a tag into a DB, returning ID of inserted element
-func (db *DB) InsertTag(t Tag) (int64, error) {
-	res, err := db.Exec("INSERT INTO tags (Name, Description) VALUES (?, ?);", stringOrNil(t.Name), stringOrNil(t.Description))
-
-	if err != nil {
-		return 0, err
-	}
-
-	id, err := res.LastInsertId()
-	if err != nil {
-		return id, err
 	}
 	return id, nil
 }
@@ -377,6 +364,21 @@ func (db *DB) InsertArticle(a Article) (int64, error) {
 		if tagID, ok := db.TagNameExists(t); ok {
 			db.InsertArticleTag(id, tagID)
 		}
+	}
+	return id, nil
+}
+
+// InsertTag inserts a tag into a DB, returning ID of inserted element
+func (db *DB) InsertTag(t Tag) (int64, error) {
+	res, err := db.Exec("INSERT INTO tags (Name, Description) VALUES (?, ?);", stringOrNil(t.Name), stringOrNil(t.Description))
+
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		return id, err
 	}
 	return id, nil
 }
