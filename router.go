@@ -65,10 +65,15 @@ func searchArticle(w http.ResponseWriter, r *http.Request) {
 // @Param id path integer false "Filter by ID"
 // @Produce json
 // @Success 200 {array} main.Article "All matching articles"
+// @Failure 400 "Bad request"
 // @Failure 500 {string} string "Internal error"
 // @Router /api/search/article/{id} [GET]
 func searchArticleID(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.Atoi(mux.Vars(r)["id"])
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		w.WriteHeader(400)
+		return
+	}
 	articles, err := db.ArticleByID(id)
 	if err != nil {
 		w.WriteHeader(500)
@@ -136,10 +141,15 @@ func searchTag(w http.ResponseWriter, r *http.Request) {
 // @Param id path integer false "Filter by ID"
 // @Produce json
 // @Success 200 {array} main.Tag "All matching tags"
+// @Failure 400 "Bad request"
 // @Failure 500 {string} string "Internal error"
 // @Router /api/search/tag/{id} [GET]
 func searchTagID(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.Atoi(mux.Vars(r)["id"])
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		w.WriteHeader(400)
+		return
+	}
 	tags, err := db.TagByID(id)
 	if err != nil {
 		w.WriteHeader(500)
@@ -229,6 +239,8 @@ func uploadCSVTag(w http.ResponseWriter, r *http.Request) {
 func uploadArticle(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Sprintf("%v", err)))
 		log.Println("Error reading body:", err)
 		return
 	}
@@ -273,6 +285,8 @@ func uploadArticle(w http.ResponseWriter, r *http.Request) {
 func uploadTag(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Sprintf("%v", err)))
 		log.Println("Error reading body:", err)
 		return
 	}
@@ -304,12 +318,54 @@ func uploadTag(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// @Summary Modify Article
+// @Accept  json
+// @Param id path integer true "ID of article to modify"
+// @Param article body main.DocArticle true "Updated article data"
+// @Success 200 "Ok"
+// @Failure 400 "Bad request"
+// @Failure 500 {string} string "Internal error"
+// @Router /api/edit/article/{id} [POST]
 func editArticle(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(501)
 }
 
+// @Summary Modify Tag
+// @Accept  json
+// @Param id path integer true "ID of tag to modify"
+// @Param tag body main.DocTag true "Updated tag data"
+// @Success 200 "Ok"
+// @Failure 400 "Bad request"
+// @Failure 403 "Tag does not exist"
+// @Failure 500 {string} string "Internal error"
+// @Router /api/edit/tag/{id} [POST]
 func editTag(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(501)
+	tag := Tag{}
+	s, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Sprintf("%v", err)))
+		log.Println("Error reading body:", err)
+		return
+	}
+	r.Body.Close()
+	err = json.Unmarshal(s, &tag)
+	id, err2 := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil || err2 != nil || len(tag.Name) == 0 {
+		w.WriteHeader(400)
+		return
+	}
+	arr, err := db.TagByID(id)
+	if len(arr) < 1 {
+		w.WriteHeader(403)
+		return
+	}
+	err = db.UpdateTag(id, tag)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Sprintf("%v", err)))
+		log.Println("Error marshalling response:", err)
+	}
 }
 
 func generateAuthHandler(w http.ResponseWriter, r *http.Request) {

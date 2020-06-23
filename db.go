@@ -383,6 +383,17 @@ func (db *DB) InsertTag(t Tag) (int64, error) {
 	return id, nil
 }
 
+// func (db *DB) UpdateArticle(id int, article Article) error {
+// }
+
+// UpdateTag updates a tag's information
+func (db *DB) UpdateTag(id int, tag Tag) error {
+	s := "UPDATE tags SET Name=?, Description=? WHERE ID=?;"
+	fmt.Println(s)
+	_, err := db.Exec(s, stringOrNil(tag.Name), stringOrNil(tag.Description), id)
+	return err
+}
+
 // WARNING: vulnerable to SQL injection
 func (db *DB) tableExists(name string) bool {
 	rows, err := db.Query("SELECT 1 FROM " + name + " LIMIT 1;")
