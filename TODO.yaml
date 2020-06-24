@@ -1,6 +1,13 @@
 TODO:
-  * update API docs
   * update frontend
   * add users
   * make response errors print in standardized format
-  * add edit route
+  * delete route
+  * edit route:
+    * articles:
+      * update article tags
+
+DONE:
+  * update API docs
+  * edit route:
+    * tags
