@@ -303,13 +303,13 @@ func (db *DB) TagSearch(tags []string, lookslike, orderby string, reverse bool, 
 	return rtags, nil
 }
 
-// ArticleByID searches for all articles with an ID
-func (db *DB) ArticleByID(id int) ([]Article, error) {
+// ArticleByID searches for an articles with an ID, returning `nil` if not found
+func (db *DB) ArticleByID(id int) (*Article, error) {
 	// TODO: make this return single article
 	s := "SELECT * FROM articles WHERE ID=?;"
 	rows, err := db.Query(s, id)
 	if err != nil {
-		return []Article{}, err
+		return nil, err
 	}
 	articles := UnmarshalArticles(rows)
 	rows.Close()
@@ -318,21 +318,29 @@ func (db *DB) ArticleByID(id int) ([]Article, error) {
 		articles[ii] = db.PopulateArticleTags(articles[ii])
 	}
 
-	return articles, nil
+	if len(articles) >= 1 {
+		return &articles[0], nil
+	} else {
+		return nil, nil
+	}
 }
 
-// TagByID searches for all tags with an ID
-func (db *DB) TagByID(id int) ([]Tag, error) {
+// TagByID searches for all tags with an ID, returning `nil` if not found
+func (db *DB) TagByID(id int) (*Tag, error) {
 	// TODO: make this return single tag
 	s := "SELECT * FROM tags WHERE ID=?;"
 	rows, err := db.Query(s, id)
 	if err != nil {
-		return []Tag{}, err
+		return nil, err
 	}
 	tags := UnmarshalTags(rows)
 	rows.Close()
 
-	return tags, nil
+	if len(tags) >= 1 {
+		return &tags[0], nil
+	} else {
+		return nil, nil
+	}
 }
 
 // InsertArticleTag links an article to a tag, returning ID of inserted element
@@ -383,13 +391,17 @@ func (db *DB) InsertTag(t Tag) (int64, error) {
 	return id, nil
 }
 
-// func (db *DB) UpdateArticle(id int, article Article) error {
-// }
+// UpdateArticle updates an article's information, BUT NOT TAGS
+func (db *DB) UpdateArticle(id int, article Article) error {
+	s := "UPDATE articles SET Name=?, URL=?, Description=? WHERE ID=?;"
+	_, err := db.Exec(s, stringOrNil(article.Name), stringOrNil(article.URL), stringOrNil(article.Description), id)
+	// TODO: udpate associated tags
+	return err
+}
 
 // UpdateTag updates a tag's information
 func (db *DB) UpdateTag(id int, tag Tag) error {
 	s := "UPDATE tags SET Name=?, Description=? WHERE ID=?;"
-	fmt.Println(s)
 	_, err := db.Exec(s, stringOrNil(tag.Name), stringOrNil(tag.Description), id)
 	return err
 }

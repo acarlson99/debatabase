@@ -45,17 +45,14 @@ func searchArticle(w http.ResponseWriter, r *http.Request) {
 
 	articles, err := db.ArticlesWithTagsSearch(sp, lookslike, orderby, rev, limit, offset)
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(fmt.Sprintf("%v", err)))
-		log.Println("Error querying tags:", err)
+		internalError("querying tags", w, err)
 		return
 	}
 
 	resp, err := json.Marshal(articles)
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(fmt.Sprintf("%v", err)))
-		log.Println("Error marshalling response:", err)
+		internalError("marshalling response", w, err)
+		return
 	} else {
 		w.Write(resp)
 	}
@@ -66,6 +63,7 @@ func searchArticle(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Success 200 {array} main.Article "All matching articles"
 // @Failure 400 "Bad request"
+// @Failure 404 "Article not found"
 // @Failure 500 {string} string "Internal error"
 // @Router /api/search/article/{id} [GET]
 func searchArticleID(w http.ResponseWriter, r *http.Request) {
@@ -76,17 +74,17 @@ func searchArticleID(w http.ResponseWriter, r *http.Request) {
 	}
 	articles, err := db.ArticleByID(id)
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(fmt.Sprintf("%v", err)))
-		log.Println("Error querying tags:", err)
+		internalError("querying tags", w, err)
+		return
+	} else if articles == nil {
+		w.WriteHeader(404)
 		return
 	}
 
 	resp, err := json.Marshal(articles)
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(fmt.Sprintf("%v", err)))
-		log.Println("Error marshalling response:", err)
+		internalError("marshalling response", w, err)
+		return
 	} else {
 		w.Write(resp)
 	}
@@ -121,17 +119,14 @@ func searchTag(w http.ResponseWriter, r *http.Request) {
 
 	tags, err := db.TagSearch(sp, lookslike, orderby, rev, limit, offset)
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(fmt.Sprintf("%v", err)))
-		log.Println("Error querying tags:", err)
+		internalError("querying tags", w, err)
 		return
 	}
 
 	resp, err := json.Marshal(tags)
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(fmt.Sprintf("%v", err)))
-		log.Println("Error marshalling response:", err)
+		internalError("marshalling response", w, err)
+		return
 	} else {
 		w.Write(resp)
 	}
@@ -142,6 +137,7 @@ func searchTag(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Success 200 {array} main.Tag "All matching tags"
 // @Failure 400 "Bad request"
+// @Failure 404 "Tag not found"
 // @Failure 500 {string} string "Internal error"
 // @Router /api/search/tag/{id} [GET]
 func searchTagID(w http.ResponseWriter, r *http.Request) {
@@ -152,17 +148,17 @@ func searchTagID(w http.ResponseWriter, r *http.Request) {
 	}
 	tags, err := db.TagByID(id)
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(fmt.Sprintf("%v", err)))
-		log.Println("Error querying tags:", err)
+		internalError("querying tags", w, err)
+		return
+	} else if tags == nil {
+		w.WriteHeader(404)
 		return
 	}
 
 	resp, err := json.Marshal(tags)
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(fmt.Sprintf("%v", err)))
-		log.Println("Error marshalling response:", err)
+		internalError("marshalling response", w, err)
+		return
 	} else {
 		w.Write(resp)
 	}
@@ -239,21 +235,19 @@ func uploadCSVTag(w http.ResponseWriter, r *http.Request) {
 func uploadArticle(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(fmt.Sprintf("%v", err)))
-		log.Println("Error reading body:", err)
+		internalError("reading body", w, err)
 		return
 	}
-	a := Article{}
-	err = json.Unmarshal(body, &a)
-	if err != nil || len(a.Name) == 0 {
+	article := Article{}
+	err = json.Unmarshal(body, &article)
+	if err != nil || len(article.Name) == 0 {
 		if err != nil {
 			log.Println("Error unmarshalling data:", err)
 		}
 		w.WriteHeader(400)
 		return
 	}
-	fmt.Printf("%+v\n", a)
+	fmt.Printf("%+v\n", article)
 
 	err = r.Body.Close()
 	if err != nil {
@@ -261,16 +255,15 @@ func uploadArticle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check if all tags exist
-	if !db.TagNamesExist(a.Tags...) {
+	if !db.TagNamesExist(article.Tags...) {
 		w.WriteHeader(422)
 		return
 	}
 
-	_, err = db.InsertArticle(a)
+	_, err = db.InsertArticle(article)
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(fmt.Sprintf("%v", err)))
-		log.Println("Error inserting article:", err)
+		internalError("inserting article", w, err)
+		return
 	}
 }
 
@@ -285,21 +278,19 @@ func uploadArticle(w http.ResponseWriter, r *http.Request) {
 func uploadTag(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(fmt.Sprintf("%v", err)))
-		log.Println("Error reading body:", err)
+		internalError("reading body", w, err)
 		return
 	}
-	a := Tag{}
-	err = json.Unmarshal(body, &a)
-	if err != nil || len(a.Name) == 0 {
+	tag := Tag{}
+	err = json.Unmarshal(body, &tag)
+	if err != nil || len(tag.Name) == 0 {
 		w.WriteHeader(400)
 		return
 	}
-	fmt.Printf("%+v\n", a)
+	fmt.Printf("%+v\n", tag)
 
 	// check duplicates
-	if _, r := db.TagNameExists(a.Name); r {
+	if _, r := db.TagNameExists(tag.Name); r {
 		w.WriteHeader(403)
 		log.Println("Not inserting tag. Already exists")
 		return
@@ -310,11 +301,10 @@ func uploadTag(w http.ResponseWriter, r *http.Request) {
 		log.Println("Error closing http.Request body:", err)
 	}
 
-	_, err = db.InsertTag(a)
+	_, err = db.InsertTag(tag)
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(fmt.Sprintf("%v", err)))
-		log.Println("Error inserting article:", err)
+		internalError("inserting article", w, err)
+		return
 	}
 }
 
@@ -324,10 +314,38 @@ func uploadTag(w http.ResponseWriter, r *http.Request) {
 // @Param article body main.DocArticle true "Updated article data"
 // @Success 200 "Ok"
 // @Failure 400 "Bad request"
+// @Failure 404 "Article does not exist"
 // @Failure 500 {string} string "Internal error"
 // @Router /api/edit/article/{id} [POST]
 func editArticle(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(501)
+	article := Article{}
+	s, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		internalError("reading body", w, err)
+		return
+	}
+	r.Body.Close()
+	err = json.Unmarshal(s, &article)
+	id, err2 := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil || err2 != nil || len(article.Name) == 0 {
+		w.WriteHeader(400)
+		return
+	}
+	// check if exists
+	res, err := db.ArticleByID(id)
+	if err != nil {
+		internalError("querying DB", w, err)
+		return
+	} else if res == nil {
+		w.WriteHeader(404)
+		return
+	}
+	// update
+	err = db.UpdateArticle(id, article)
+	if err != nil {
+		internalError("updating article", w, err)
+		return
+	}
 }
 
 // @Summary Modify Tag
@@ -336,16 +354,14 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 // @Param tag body main.DocTag true "Updated tag data"
 // @Success 200 "Ok"
 // @Failure 400 "Bad request"
-// @Failure 403 "Tag does not exist"
+// @Failure 404 "Tag does not exist"
 // @Failure 500 {string} string "Internal error"
 // @Router /api/edit/tag/{id} [POST]
 func editTag(w http.ResponseWriter, r *http.Request) {
 	tag := Tag{}
 	s, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(fmt.Sprintf("%v", err)))
-		log.Println("Error reading body:", err)
+		internalError("reading body", w, err)
 		return
 	}
 	r.Body.Close()
@@ -355,17 +371,28 @@ func editTag(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(400)
 		return
 	}
-	arr, err := db.TagByID(id)
-	if len(arr) < 1 {
-		w.WriteHeader(403)
+	// check if exists
+	res, err := db.TagByID(id)
+	if err != nil {
+		internalError("querying DB", w, err)
+		return
+	} else if res == nil {
+		w.WriteHeader(404)
 		return
 	}
+	// update
 	err = db.UpdateTag(id, tag)
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(fmt.Sprintf("%v", err)))
-		log.Println("Error marshalling response:", err)
+		internalError("updating tag", w, err)
+		return
 	}
+}
+
+// internalError writes a 500 response to a ResponseWriter and logs an error
+func internalError(logMsg string, w http.ResponseWriter, err error) {
+	log.Println("Error", logMsg+": ", err)
+	w.WriteHeader(500)
+	w.Write([]byte(fmt.Sprintf("%v", err)))
 }
 
 func generateAuthHandler(w http.ResponseWriter, r *http.Request) {
@@ -409,8 +436,8 @@ func CreateRouter() *mux.Router {
 
 	// edit
 	// TODO: add `edit` feature for articles
-	r.HandleFunc("/api/edit/article/{id}", editArticle)
-	r.HandleFunc("/api/edit/tag/{id}", editTag)
+	r.HandleFunc("/api/edit/article/{id}", editArticle).Methods("POST") // modify article by ID
+	r.HandleFunc("/api/edit/tag/{id}", editTag).Methods("POST")         // modify tag by ID
 
 	// user
 	// TODO: add users
