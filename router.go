@@ -333,7 +333,7 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(400)
 		return
 	}
-	// check if exists
+	// check if article exists
 	res, err := db.ArticleByID(id)
 	if err != nil {
 		internalError("querying DB", w, err)
@@ -342,6 +342,7 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(404)
 		return
 	}
+	// check if tags exist
 	tagIDs, exists := db.TagNamesExist(article.Tags...)
 	if !exists {
 		w.WriteHeader(422)
@@ -353,7 +354,7 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 		internalError("updating article", w, err)
 		return
 	}
-
+	// update tags
 	err = db.RemoveArticleTags(id)
 	if err != nil {
 		internalError("removing tags", w, err)
