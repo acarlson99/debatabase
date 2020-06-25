@@ -53,9 +53,8 @@ func searchArticle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		internalError("marshalling response", w, err)
 		return
-	} else {
-		w.Write(resp)
 	}
+	w.Write(resp)
 }
 
 // @Summary Search articles by name
@@ -85,9 +84,8 @@ func searchArticleID(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		internalError("marshalling response", w, err)
 		return
-	} else {
-		w.Write(resp)
 	}
+	w.Write(resp)
 }
 
 // @Summary Search tags by name
@@ -127,9 +125,8 @@ func searchTag(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		internalError("marshalling response", w, err)
 		return
-	} else {
-		w.Write(resp)
 	}
+	w.Write(resp)
 }
 
 // @Summary Search tags by name
@@ -159,9 +156,8 @@ func searchTagID(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		internalError("marshalling response", w, err)
 		return
-	} else {
-		w.Write(resp)
 	}
+	w.Write(resp)
 }
 
 func uploadCSVArticle(w http.ResponseWriter, r *http.Request) {
@@ -408,6 +404,76 @@ func editTag(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// @Summary Delete Article
+// @Accept  json
+// @Param id path integer true "ID of article to modify"
+// @Success 200 "Ok"
+// @Failure 400 "Bad request"
+// @Failure 404 "Tag does not exist"
+// @Failure 500 {string} string "Internal error"
+// @Router /api/del/article/{id} [GET]
+func deleteArticle(w http.ResponseWriter, r *http.Request) {
+	id2, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		w.WriteHeader(400)
+		return
+	}
+	id := int64(id2)
+	res, err := db.ArticleByID(id)
+	if err != nil {
+		internalError("querying DB", w, err)
+		return
+	} else if res == nil {
+		w.WriteHeader(404)
+		return
+	}
+	err = db.RemoveArticle(id)
+	if err != nil {
+		internalError("querying DB", w, err)
+		return
+	}
+	err = db.RemoveArticleTags(id)
+	if err != nil {
+		internalError("querying DB", w, err)
+		return
+	}
+}
+
+// @Summary Delete Tag
+// @Accept  json
+// @Param id path integer true "ID of tag to modify"
+// @Success 200 "Ok"
+// @Failure 400 "Bad request"
+// @Failure 404 "Tag does not exist"
+// @Failure 500 {string} string "Internal error"
+// @Router /api/del/tag/{id} [GET]
+func deleteTag(w http.ResponseWriter, r *http.Request) {
+	id2, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		w.WriteHeader(400)
+		return
+	}
+	id := int64(id2)
+	res, err := db.TagByID(id)
+	if err != nil {
+		internalError("querying DB", w, err)
+		return
+	} else if res == nil {
+		w.WriteHeader(404)
+		return
+	}
+	err = db.RemoveTag(id)
+	if err != nil {
+		internalError("querying DB", w, err)
+		return
+	}
+	err = db.RemoveTagsFromArticles(id)
+	if err != nil {
+		internalError("querying DB", w, err)
+		return
+	}
+}
+
 // internalError writes a 500 response to a ResponseWriter and logs an error
 func internalError(logMsg string, w http.ResponseWriter, err error) {
 	log.Println("Error", logMsg+": ", err)
@@ -447,18 +513,17 @@ func CreateRouter() *mux.Router {
 	r.HandleFunc("/api/search/article", searchArticle)
 	r.HandleFunc("/api/search/tag/{id}", searchTagID)
 	r.HandleFunc("/api/search/tag", searchTag)
-
 	// upload
 	r.HandleFunc("/api/upload/article/csv", uploadCSVArticle).Methods("POST") // create new article
 	r.HandleFunc("/api/upload/article", uploadArticle).Methods("POST")        // create new article
 	r.HandleFunc("/api/upload/tag/csv", uploadCSVTag).Methods("POST")         // create new tag
 	r.HandleFunc("/api/upload/tag", uploadTag).Methods("POST")                // create new tag
-
 	// edit
-	// TODO: add `edit` feature for articles
 	r.HandleFunc("/api/edit/article/{id}", editArticle).Methods("POST") // modify article by ID
 	r.HandleFunc("/api/edit/tag/{id}", editTag).Methods("POST")         // modify tag by ID
-
+	// delete
+	r.HandleFunc("/api/del/article/{id}", deleteArticle)
+	r.HandleFunc("/api/del/tag/{id}", deleteTag)
 	// user
 	// TODO: add users
 	r.HandleFunc("/api/user/auth/{uname}/{passwd}", generateAuthHandler)   // sends Json Web Token to client if uname/passwd match DB

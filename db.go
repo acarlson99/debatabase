@@ -409,10 +409,31 @@ func (db *DB) InsertTag(t Tag) (int64, error) {
 	return id, nil
 }
 
-// RemoveArticleTags removes all article-tag links linking articleID with tagIDs
+// RemoveArticleTags removes all article-tag links by articleID
 func (db *DB) RemoveArticleTags(articleID int64) error {
 	s := "DELETE FROM article_to_tag WHERE ArticleID=?;"
 	_, err := db.Exec(s, articleID)
+	return err
+}
+
+// RemoveTagsFromArticles removes all article-tag links by tagID
+func (db *DB) RemoveTagsFromArticles(tagID int64) error {
+	s := "DELETE FROM article_to_tag WHERE TagID=?;"
+	_, err := db.Exec(s, tagID)
+	return err
+}
+
+// RemoveArticle removes an article without touching article-tag links
+func (db *DB) RemoveArticle(id int64) error {
+	s := "DELETE FROM articles WHERE ID=?;"
+	_, err := db.Exec(s, id)
+	return err
+}
+
+// RemoveArticle removes a tag without touching article-tag links
+func (db *DB) RemoveTag(id int64) error {
+	s := "DELETE FROM tags WHERE ID=?;"
+	_, err := db.Exec(s, id)
 	return err
 }
 
