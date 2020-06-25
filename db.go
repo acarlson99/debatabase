@@ -85,13 +85,16 @@ func (db *DB) TagNameExists(s string) (int64, bool) {
 }
 
 // TagNamesExist is TagNameExists in a loop
-func (db *DB) TagNamesExist(s ...string) bool {
+func (db *DB) TagNamesExist(s ...string) ([]int64, bool) {
+	res := []int64{}
 	for _, t := range s {
-		if _, r := db.TagNameExists(t); !r {
-			return false
+		id, exists := db.TagNameExists(t)
+		if !exists {
+			return []int64{}, false
 		}
+		res = append(res, id)
 	}
-	return true
+	return res, true
 }
 
 func stringOrNil(i string) interface{} {
@@ -304,7 +307,7 @@ func (db *DB) TagSearch(tags []string, lookslike, orderby string, reverse bool, 
 }
 
 // ArticleByID searches for an articles with an ID, returning `nil` if not found
-func (db *DB) ArticleByID(id int) (*Article, error) {
+func (db *DB) ArticleByID(id int64) (*Article, error) {
 	// TODO: make this return single article
 	s := "SELECT * FROM articles WHERE ID=?;"
 	rows, err := db.Query(s, id)
@@ -326,7 +329,7 @@ func (db *DB) ArticleByID(id int) (*Article, error) {
 }
 
 // TagByID searches for all tags with an ID, returning `nil` if not found
-func (db *DB) TagByID(id int) (*Tag, error) {
+func (db *DB) TagByID(id int64) (*Tag, error) {
 	// TODO: make this return single tag
 	s := "SELECT * FROM tags WHERE ID=?;"
 	rows, err := db.Query(s, id)
@@ -354,6 +357,21 @@ func (db *DB) InsertArticleTag(articleID int64, tagID int64) (int64, error) {
 		return 0, err
 	}
 	return id, nil
+}
+
+// InsertArticleTags updates an article's tags
+func (db *DB) InsertArticleTags(id int64, tagIDs []int64) error {
+	if len(tagIDs) < 1 {
+		return nil
+	}
+	s := "INSERT INTO article_to_tag (ArticleID,TagID) VALUES (?,?)" +
+		strings.Repeat(",(?,?)", len(tagIDs)-1) + ";"
+	var params []interface{}
+	for _, tagID := range tagIDs {
+		params = append(params, id, tagID)
+	}
+	_, err := db.Exec(s, params...)
+	return err
 }
 
 // InsertArticle inserts an article into a DB, linking tags if they exist and returning the article's ID, returning ID of inserted element
@@ -391,16 +409,22 @@ func (db *DB) InsertTag(t Tag) (int64, error) {
 	return id, nil
 }
 
+// RemoveArticleTags removes all article-tag links linking articleID with tagIDs
+func (db *DB) RemoveArticleTags(articleID int64) error {
+	s := "DELETE FROM article_to_tag WHERE ArticleID=?;"
+	_, err := db.Exec(s, articleID)
+	return err
+}
+
 // UpdateArticle updates an article's information, BUT NOT TAGS
-func (db *DB) UpdateArticle(id int, article Article) error {
+func (db *DB) UpdateArticle(id int64, article Article) error {
 	s := "UPDATE articles SET Name=?, URL=?, Description=? WHERE ID=?;"
 	_, err := db.Exec(s, stringOrNil(article.Name), stringOrNil(article.URL), stringOrNil(article.Description), id)
-	// TODO: udpate associated tags
 	return err
 }
 
 // UpdateTag updates a tag's information
-func (db *DB) UpdateTag(id int, tag Tag) error {
+func (db *DB) UpdateTag(id int64, tag Tag) error {
 	s := "UPDATE tags SET Name=?, Description=? WHERE ID=?;"
 	_, err := db.Exec(s, stringOrNil(tag.Name), stringOrNil(tag.Description), id)
 	return err

@@ -72,7 +72,7 @@ func searchArticleID(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(400)
 		return
 	}
-	articles, err := db.ArticleByID(id)
+	articles, err := db.ArticleByID(int64(id))
 	if err != nil {
 		internalError("querying tags", w, err)
 		return
@@ -146,7 +146,7 @@ func searchTagID(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(400)
 		return
 	}
-	tags, err := db.TagByID(id)
+	tags, err := db.TagByID(int64(id))
 	if err != nil {
 		internalError("querying tags", w, err)
 		return
@@ -255,7 +255,7 @@ func uploadArticle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check if all tags exist
-	if !db.TagNamesExist(article.Tags...) {
+	if _, e := db.TagNamesExist(article.Tags...); !e {
 		w.WriteHeader(422)
 		return
 	}
@@ -315,6 +315,7 @@ func uploadTag(w http.ResponseWriter, r *http.Request) {
 // @Success 200 "Ok"
 // @Failure 400 "Bad request"
 // @Failure 404 "Article does not exist"
+// @Failure 422 "Invalid tag(s)"
 // @Failure 500 {string} string "Internal error"
 // @Router /api/edit/article/{id} [POST]
 func editArticle(w http.ResponseWriter, r *http.Request) {
@@ -326,7 +327,8 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 	}
 	r.Body.Close()
 	err = json.Unmarshal(s, &article)
-	id, err2 := strconv.Atoi(mux.Vars(r)["id"])
+	id2, err2 := strconv.Atoi(mux.Vars(r)["id"])
+	id := int64(id2)
 	if err != nil || err2 != nil || len(article.Name) == 0 {
 		w.WriteHeader(400)
 		return
@@ -340,10 +342,26 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(404)
 		return
 	}
+	tagIDs, exists := db.TagNamesExist(article.Tags...)
+	if !exists {
+		w.WriteHeader(422)
+		return
+	}
 	// update
 	err = db.UpdateArticle(id, article)
 	if err != nil {
 		internalError("updating article", w, err)
+		return
+	}
+
+	err = db.RemoveArticleTags(id)
+	if err != nil {
+		internalError("removing tags", w, err)
+		return
+	}
+	err = db.InsertArticleTags(id, tagIDs)
+	if err != nil {
+		internalError("updating tags", w, err)
 		return
 	}
 }
@@ -366,7 +384,8 @@ func editTag(w http.ResponseWriter, r *http.Request) {
 	}
 	r.Body.Close()
 	err = json.Unmarshal(s, &tag)
-	id, err2 := strconv.Atoi(mux.Vars(r)["id"])
+	id2, err2 := strconv.Atoi(mux.Vars(r)["id"])
+	id := int64(id2)
 	if err != nil || err2 != nil || len(tag.Name) == 0 {
 		w.WriteHeader(400)
 		return

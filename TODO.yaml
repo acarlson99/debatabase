@@ -3,11 +3,9 @@ TODO:
   * add users
   * make response errors print in standardized format
   * delete route
-  * edit route:
-    * articles:
-      * update article tags
 
 DONE:
   * update API docs
   * edit route:
     * tags
+    * articles
