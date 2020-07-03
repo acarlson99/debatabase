@@ -1,10 +1,11 @@
 TODO:
   * update frontend
-  * add users
+  * add users:
+    * verify user credentials on insert/edit/delete
   * make response errors print in standardized format
-  * delete route
 
 DONE:
+  * delete route
   * update API docs
   * edit route:
     * tags

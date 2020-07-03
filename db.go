@@ -15,10 +15,14 @@ type DB struct {
 	*sql.DB
 }
 
-// DBConnect creates connection to database with credentials
-func DBConnect(uname, password, dbname string) (*DB, error) {
+// DBConnect creates connection to database (through hostname if it exists) with credentials
+func DBConnect(uname, password, hostname, dbname string) (*DB, error) {
 	fmt.Println("Connecting to database...")
-	connStr := fmt.Sprintf("%s:%s@/%s", uname, password, dbname)
+	connStr := fmt.Sprintf("%s:%s@", uname, password)
+	if len(hostname) > 0 {
+		connStr += fmt.Sprintf("tcp(%s)", hostname)
+	}
+	connStr += "/"
 	db, err := sql.Open("mysql", connStr)
 	if err != nil {
 		return nil, err
@@ -27,12 +31,19 @@ func DBConnect(uname, password, dbname string) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &DB{db}, nil
+	// create && use database
+	s := "CREATE DATABASE IF NOT EXISTS " + dbname + ";"
+	_, err = db.Exec(s)
+	if err != nil {
+		return nil, err
+	}
+	_, err = db.Exec("USE " + dbname + ";")
+	return &DB{db}, err
 }
 
 // Init things
 func (db *DB) Init() {
-	// check if `articles` exists
+	// make sure `articles` exists
 	fmt.Println("Initializing database...")
 	if !db.tableExists("articles") {
 		fmt.Println("DB creating table `articles`...")
@@ -41,7 +52,7 @@ func (db *DB) Init() {
 			log.Fatal(err)
 		}
 	}
-	// check if `tags` exists
+	// make sure `tags` exists
 	if !db.tableExists("tags") {
 		fmt.Println("DB creating table `tags`...")
 		_, err := db.Exec("CREATE TABLE tags( ID INT AUTO_INCREMENT, Name VARCHAR(16) UNIQUE, Description VARCHAR(256), PRIMARY KEY (ID, Name) );")
@@ -49,10 +60,18 @@ func (db *DB) Init() {
 			log.Fatal(err)
 		}
 	}
-	// check if `article_to_tag` exists
+	// make sure `article_to_tag` exists
 	if !db.tableExists("article_to_tag") {
 		fmt.Println("DB creating table `article_to_tag`...")
 		_, err := db.Exec("CREATE TABLE article_to_tag( ArticleID INT, TagID INT, PRIMARY KEY (ArticleID, TagID) );")
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	// make sure `users` exists
+	if !db.tableExists("users") {
+		fmt.Println("DB creating table `users`...")
+		_, err := db.Exec("CREATE TABLE users( ID INT AUTO_INCREMENT, Name VARCHAR(64) UNIQUE, Password VARCHAR(256), PRIMARY KEY (ID) );")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -323,9 +342,8 @@ func (db *DB) ArticleByID(id int64) (*Article, error) {
 
 	if len(articles) >= 1 {
 		return &articles[0], nil
-	} else {
-		return nil, nil
 	}
+	return nil, nil
 }
 
 // TagByID searches for all tags with an ID, returning `nil` if not found
@@ -341,9 +359,8 @@ func (db *DB) TagByID(id int64) (*Tag, error) {
 
 	if len(tags) >= 1 {
 		return &tags[0], nil
-	} else {
-		return nil, nil
 	}
+	return nil, nil
 }
 
 // InsertArticleTag links an article to a tag, returning ID of inserted element
@@ -430,7 +447,7 @@ func (db *DB) RemoveArticle(id int64) error {
 	return err
 }
 
-// RemoveArticle removes a tag without touching article-tag links
+// RemoveTag removes a tag without touching article-tag links
 func (db *DB) RemoveTag(id int64) error {
 	s := "DELETE FROM tags WHERE ID=?;"
 	_, err := db.Exec(s, id)
@@ -449,6 +466,57 @@ func (db *DB) UpdateTag(id int64, tag Tag) error {
 	s := "UPDATE tags SET Name=?, Description=? WHERE ID=?;"
 	_, err := db.Exec(s, stringOrNil(tag.Name), stringOrNil(tag.Description), id)
 	return err
+}
+
+// UnmarshalUsers unmarshalls users
+func UnmarshalUsers(rows *sql.Rows) []User {
+	users := []User{}
+	if rows == nil {
+		return users
+	}
+	for rows.Next() {
+		var id int64
+		name := ""
+		passwd := ""
+
+		err := rows.Scan(&id, &name, &passwd)
+		if err != nil {
+			log.Println("Error unmarshalling article:", err)
+		}
+		users = append(users, User{
+			ID:     id,
+			Name:   name,
+			Passwd: passwd,
+		})
+	}
+	return users
+}
+
+// UserByName returns a user with a name, or nil
+func (db *DB) UserByName(name string) (*User, error) {
+	s := "SELECT * FROM users WHERE Name=?;"
+	rows, err := db.Query(s, name)
+	if err != nil {
+		return nil, err
+	}
+	users := UnmarshalUsers(rows)
+	if len(users) < 1 {
+		return nil, nil
+	} else if len(users) > 1 {
+		log.Println("WARNING: multiple users with name", users)
+	}
+	return &users[0], nil
+}
+
+// InsertUser inserts a user
+func (db *DB) InsertUser(user User) (int64, error) {
+	s := `INSERT INTO users (Name, Password) VALUES (?, ?);`
+	res, err := db.Exec(s, user.Name, user.Passwd)
+	if err != nil {
+		return 0, err
+	}
+	id, _ := res.LastInsertId()
+	return id, nil
 }
 
 // WARNING: vulnerable to SQL injection

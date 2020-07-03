@@ -11,3 +11,8 @@ type DocTag struct {
 	Name        string `json:"name" maximum:"16" example:"engine"`
 	Description string `json:"description" maximum:"256" example:"a machine designed to convert one form of energy into mechanical energy"`
 }
+
+type DocUser struct {
+	Name   string `json:"name" example:"John"`
+	Passwd string `json:"password" example:"password"`
+}
