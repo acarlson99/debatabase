@@ -57,6 +57,9 @@ func CheckEnvVars() {
 // @title Swagger Example API
 // @version 1.0
 // @description DB
+// @securityDefinitions.apikey Bearer
+// @in header
+// @name Authorization
 func main() {
 
 	if os.Getenv("APP_ENV") == "production" {

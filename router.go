@@ -60,7 +60,7 @@ func searchArticle(w http.ResponseWriter, r *http.Request) {
 // @Summary Search articles by name
 // @Param id path integer false "Filter by ID"
 // @Produce json
-// @Success 200 {array} main.Article "All matching articles"
+// @Success 200 {object} main.Article "All matching articles"
 // @Failure 400 "Bad request"
 // @Failure 404 "Article not found"
 // @Failure 500 {string} string "Internal error"
@@ -132,7 +132,7 @@ func searchTag(w http.ResponseWriter, r *http.Request) {
 // @Summary Search tags by name
 // @Param id path integer false "Filter by ID"
 // @Produce json
-// @Success 200 {array} main.Tag "All matching tags"
+// @Success 200 {object} main.Tag "All matching tags"
 // @Failure 400 "Bad request"
 // @Failure 404 "Tag not found"
 // @Failure 500 {string} string "Internal error"
@@ -527,7 +527,7 @@ func userCreateHandler(w http.ResponseWriter, r *http.Request) {
 // @Summary Log in as User
 // @Accept  json
 // @Param user body main.DocUser true "User data"
-// @Success 200 {array} json "JWT token"
+// @Success 200 {object} main.User "JWT token"
 // @Failure 400 "Bad request"
 // @Failure 403 "Invalid credentials"
 // @Failure 500 {string} string "Internal error"
@@ -559,8 +559,13 @@ func userAuthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// // create JWT token and write to connection
-	w.Write([]byte(`{"todo":"JWT token"}`))
+	// TODO: create JWT token and write to connection
+	resp, err := json.Marshal(*u)
+	if err != nil {
+		internalError("querying users", w, err)
+		return
+	}
+	w.Write(resp)
 }
 
 func enableCors(h http.Handler) http.Handler {
