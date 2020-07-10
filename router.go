@@ -576,7 +576,7 @@ func enableCors(h http.Handler) http.Handler {
 }
 
 // CreateRouter returns a new mux.Router with appropriately registered paths
-func CreateRouter() *mux.Router {
+func CreateRouter(frontendStaticFiles string) *mux.Router {
 	r := mux.NewRouter().StrictSlash(true)
 
 	r.Use(enableCors)
@@ -609,6 +609,6 @@ func CreateRouter() *mux.Router {
 	r.HandleFunc("/api/user/auth", userAuthHandler)     // sends Json Web Token to client if uname/passwd match DB
 
 	// serve
-	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./frontend/build/")))
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir(frontendStaticFiles)))
 	return r
 }

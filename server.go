@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"regexp"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -46,7 +48,7 @@ type User struct {
 // CheckEnvVars checks environment variables to make sure they are set
 func CheckEnvVars() {
 	vars := []string{"APP_ENV", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_HOSTNAME",
-		"MYSQL_DBNAME", "HOST_ADDRESS", "HOST_PORT"}
+		"MYSQL_DBNAME", "HOST_ADDRESS", "HOST_PORT", "FILES_TO_SERVE"}
 	for _, v := range vars {
 		if len(os.Getenv(v)) == 0 {
 			fmt.Println("WARNING: environment variable `" + v + "` not set")
@@ -87,6 +89,7 @@ func main() {
 	}
 	db.Init()
 
+	// handle interrupts and shutdown safely
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt)
@@ -97,9 +100,27 @@ func main() {
 		os.Exit(0)
 	}()
 
+	serveLocation := os.Getenv("FILES_TO_SERVE")
+	if len(serveLocation) == 0 {
+		serveLocation = "./frontend/build/"
+	}
+	ok, err := regexp.MatchString("/(build)|(static)/?$", serveLocation)
+	if err != nil {
+		panic(err)
+	}
+	if !ok {
+		fmt.Println("WARNING: `FILES_TO_SERVE` does not end in `/build/` or `/static/`")
+		fmt.Println("Are you sure you would like to continue? [y/n]")
+		input := ""
+		fmt.Scanln(&input)
+		if strings.ToLower(input) != "y" {
+			os.Exit(1)
+		}
+	}
+	r := CreateRouter(serveLocation)
+
 	hostAddr = os.Getenv("HOST_ADDRESS")
 	hostPort = os.Getenv("HOST_PORT")
-	r := CreateRouter()
 	fmt.Println("Listening and serving `" + hostAddr + ":" + hostPort + "`...")
 	http.ListenAndServe(hostAddr+":"+hostPort, r)
 }
