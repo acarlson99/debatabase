@@ -72,12 +72,14 @@ curl -L -i localhost:9000/api/search/tag?tags=engine
 curl -L -i localhost:9000/api/search/article?tags=engine
 > [{"id":1,"name":"googel","url":"google.com","description":"","tags":["engine","search"]}]
 
-# upload from CSV
+# upload from CSV -- NOTE: UNDOCUMENTED NOT INTENDED FOR ACTUAL USE
 curl -L -i localhost:9000/api/upload/tag/csv --data "`cat resources/tags.csv`"
 curl -L -i localhost:9000/api/upload/article/csv --data "`cat resources/articles.csv`"
 ```
 
 # Endpoints
+
+swagger API http://localhost:9000/swagger/index.html
 
 ## Search
 

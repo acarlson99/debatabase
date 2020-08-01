@@ -56,9 +56,9 @@ func CheckEnvVars() {
 	}
 }
 
-// @title Swagger Example API
+// @title DB
 // @version 1.0
-// @description DB
+// @description Debatabase
 // @securityDefinitions.apikey Bearer
 // @in header
 // @name Authorization
@@ -89,17 +89,6 @@ func main() {
 	}
 	db.Init()
 
-	// handle interrupts and shutdown safely
-	go func() {
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, os.Interrupt)
-		sig := <-c
-
-		fmt.Println("Received", sig, "signal.  Shutting down...")
-		db.Close()
-		os.Exit(0)
-	}()
-
 	serveLocation := os.Getenv("FILES_TO_SERVE")
 	if len(serveLocation) == 0 {
 		serveLocation = "./frontend/build/"
@@ -122,5 +111,13 @@ func main() {
 	hostAddr = os.Getenv("HOST_ADDRESS")
 	hostPort = os.Getenv("HOST_PORT")
 	fmt.Println("Listening and serving `" + hostAddr + ":" + hostPort + "`...")
-	http.ListenAndServe(hostAddr+":"+hostPort, r)
+	go http.ListenAndServe(hostAddr+":"+hostPort, r)
+
+	// handle interrupts and shutdown safely
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	sig := <-c
+
+	fmt.Println("Received", sig, "signal.  Shutting down...")
+	db.Close()
 }
