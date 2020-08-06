@@ -81,6 +81,7 @@ func main() {
 	dbname := os.Getenv("MYSQL_DBNAME")
 	hostname := os.Getenv("MYSQL_HOSTNAME")
 	var err error
+	fmt.Println("Connecting to database...")
 	db, err = DBConnect(uname, passwd, hostname, dbname)
 	if err != nil {
 		fmt.Println("Failed to connect to MySQL DB.  Is DB running?")
@@ -88,6 +89,7 @@ func main() {
 		os.Exit(1)
 	}
 	db.Init()
+	go DBMaintainConnection(uname, passwd, hostname, dbname, 15)
 
 	serveLocation := os.Getenv("FILES_TO_SERVE")
 	if len(serveLocation) == 0 {

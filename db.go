@@ -6,6 +6,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -15,14 +16,18 @@ type DB struct {
 	*sql.DB
 }
 
-// DBConnect creates connection to database (through hostname if it exists) with credentials
-func DBConnect(uname, password, hostname, dbname string) (*DB, error) {
-	fmt.Println("Connecting to database...")
+func makeConnStr(uname, password, hostname, dbname string) string {
 	connStr := fmt.Sprintf("%s:%s@", uname, password)
 	if len(hostname) > 0 {
 		connStr += fmt.Sprintf("tcp(%s)", hostname)
 	}
 	connStr += "/"
+	return connStr
+}
+
+// DBConnect creates connection to database (through hostname if it exists) with credentials
+func DBConnect(uname, password, hostname, dbname string) (*DB, error) {
+	connStr := makeConnStr(uname, password, hostname, dbname)
 	db, err := sql.Open("mysql", connStr)
 	if err != nil {
 		return nil, err
@@ -39,6 +44,31 @@ func DBConnect(uname, password, hostname, dbname string) (*DB, error) {
 	}
 	_, err = db.Exec("USE " + dbname + ";")
 	return &DB{db}, err
+}
+
+// DBMaintainConnection checks connection to DB every `period` seconds and attempts to recreate DB on failure
+func DBMaintainConnection(uname, password, hostname, dbname string, period int) {
+	t := time.NewTicker(time.Duration(period) * time.Second)
+
+	for {
+		_ = <-t.C
+		_, err := db.Exec("SELECT ID FROM users LIMIT 0;")
+		if err == nil {
+			continue
+		}
+		log.Println("Error pinging DB:", err)
+		newDB, err := DBConnect(uname, password, hostname, dbname)
+		if err != nil {
+			log.Println("Error reconnecting to DB:", err)
+			if newDB != nil {
+				newDB.Close()
+			}
+			continue
+		}
+		log.Println("Successfully reconnected to DB")
+		db.Close()
+		db = newDB
+	}
 }
 
 // Init things

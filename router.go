@@ -54,7 +54,7 @@ func writeNotFoundError(w http.ResponseWriter) {
 
 // internalError writes a 500 response to a ResponseWriter and logs an error
 func internalError(logMsg string, w http.ResponseWriter, err error) {
-	log.Println("Error", logMsg+": ", err)
+	log.Println("Error", logMsg+":", err)
 	code := 500
 	w.WriteHeader(code)
 	s, err := json.Marshal(ErrJSON{
