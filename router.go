@@ -16,6 +16,58 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
+const (
+	errEmptyName       = "name field empty"
+	errInvalidID       = "invalid id"
+	errIDNotFound      = "id not found"
+	errNotAllTagsExist = "not all tags exist"
+)
+
+type ErrJSON struct {
+	Code  int    `json:"code,omitempty"`
+	Msg   string `json:"message,omitempty"`
+	Error string `json:"error,omitempty"`
+}
+
+// writes `code` and JSON encoded `msg`
+func writeError(msg string, code int, w http.ResponseWriter) {
+	w.WriteHeader(code)
+	s, err := json.Marshal(ErrJSON{
+		Code: code,
+		Msg:  msg,
+	})
+	if err != nil {
+		panic(err)
+	}
+	w.Write(s)
+}
+
+// writes 400 error and message to signify an invalid ID
+func writeInvalidIDError(w http.ResponseWriter) {
+	writeError(errInvalidID, 400, w)
+}
+
+// writes 404 error and appropriate error msg
+func writeNotFoundError(w http.ResponseWriter) {
+	writeError(errIDNotFound, 404, w)
+}
+
+// internalError writes a 500 response to a ResponseWriter and logs an error
+func internalError(logMsg string, w http.ResponseWriter, err error) {
+	log.Println("Error", logMsg+": ", err)
+	code := 500
+	w.WriteHeader(code)
+	s, err := json.Marshal(ErrJSON{
+		Code: code,
+		// Msg:   logMsg,
+		Error: err.Error(),
+	})
+	if err != nil {
+		panic(err)
+	}
+	w.Write(s)
+}
+
 // @Summary Search articles by name
 // @Param tags query string false "Tag names" collectionFormat(csv)
 // @Param limit query integer false "Maximum number of results"
@@ -24,7 +76,7 @@ import (
 // @Param orderby query string false "Field by which to order results" Enums(id, name, description)
 // @Produce json
 // @Success 200 {array} main.Article "All matching articles"
-// @Failure 500 {string} string "Internal error"
+// @Failure 500 {object} main.ErrJSON "Internal error"
 // @Router /api/search/article?articles=engine,train&limit=5&offset=5&lookslike=american&orderby=name [GET]
 func searchArticle(w http.ResponseWriter, r *http.Request) {
 	parts := make(map[string]string)
@@ -61,14 +113,14 @@ func searchArticle(w http.ResponseWriter, r *http.Request) {
 // @Param id path integer false "Filter by ID"
 // @Produce json
 // @Success 200 {object} main.Article "All matching articles"
-// @Failure 400 "Bad request"
-// @Failure 404 "Article not found"
-// @Failure 500 {string} string "Internal error"
+// @Failure 400 {object} main.ErrJSON "Bad request"
+// @Failure 404 {object} main.ErrJSON "Article not found"
+// @Failure 500 {object} main.ErrJSON string "Internal error"
 // @Router /api/search/article/{id} [GET]
 func searchArticleID(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
-		w.WriteHeader(400)
+		writeInvalidIDError(w)
 		return
 	}
 	articles, err := db.ArticleByID(int64(id))
@@ -76,7 +128,7 @@ func searchArticleID(w http.ResponseWriter, r *http.Request) {
 		internalError("querying tags", w, err)
 		return
 	} else if articles == nil {
-		w.WriteHeader(404)
+		writeNotFoundError(w)
 		return
 	}
 
@@ -96,7 +148,7 @@ func searchArticleID(w http.ResponseWriter, r *http.Request) {
 // @Param orderby query string false "Field by which to order results" Enums(id, name, description)
 // @Produce json
 // @Success 200 {array} main.Tag "All matching tags"
-// @Failure 500 {string} string "Internal error"
+// @Failure 500 {object} main.ErrJSON "Internal error"
 // @Router /api/search/tag?tags=engine,train&limit=5&offset=5&lookslike=american&orderby=name [GET]
 func searchTag(w http.ResponseWriter, r *http.Request) {
 	parts := make(map[string]string)
@@ -133,14 +185,14 @@ func searchTag(w http.ResponseWriter, r *http.Request) {
 // @Param id path integer false "Filter by ID"
 // @Produce json
 // @Success 200 {object} main.Tag "All matching tags"
-// @Failure 400 "Bad request"
-// @Failure 404 "Tag not found"
-// @Failure 500 {string} string "Internal error"
+// @Failure 400 {object} main.ErrJSON "Bad request"
+// @Failure 404 {object} main.ErrJSON "Tag not found"
+// @Failure 500 {object} main.ErrJSON "Internal error"
 // @Router /api/search/tag/{id} [GET]
 func searchTagID(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
-		w.WriteHeader(400)
+		writeInvalidIDError(w)
 		return
 	}
 	tags, err := db.TagByID(int64(id))
@@ -148,7 +200,7 @@ func searchTagID(w http.ResponseWriter, r *http.Request) {
 		internalError("querying tags", w, err)
 		return
 	} else if tags == nil {
-		w.WriteHeader(404)
+		writeNotFoundError(w)
 		return
 	}
 
@@ -224,9 +276,9 @@ func uploadCSVTag(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Param tag body main.DocArticle true "Article data"
 // @Success 200 "Ok"
-// @Failure 400 "Bad request"
-// @Failure 422 "Invalid tag(s)"
-// @Failure 500 {string} string "Internal error"
+// @Failure 400 {object} main.ErrJSON "Bad request"
+// @Failure 422 {object} main.ErrJSON "Invalid tag(s)"
+// @Failure 500 {object} main.ErrJSON "Internal error"
 // @Router /api/upload/article [POST]
 func uploadArticle(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
@@ -240,7 +292,7 @@ func uploadArticle(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println("Error unmarshalling data:", err)
 		}
-		w.WriteHeader(400)
+		writeError(errEmptyName, 400, w)
 		return
 	}
 	fmt.Printf("%+v\n", article)
@@ -252,7 +304,7 @@ func uploadArticle(w http.ResponseWriter, r *http.Request) {
 
 	// check if all tags exist
 	if _, e := db.TagNamesExist(article.Tags...); !e {
-		w.WriteHeader(422)
+		writeError(errNotAllTagsExist, 422, w)
 		return
 	}
 
@@ -267,9 +319,9 @@ func uploadArticle(w http.ResponseWriter, r *http.Request) {
 // @Accept  json
 // @Param tag body main.DocTag true "Tag data"
 // @Success 200 "Ok"
-// @Failure 400 "Bad request"
-// @Failure 403 "Duplicate tag"
-// @Failure 500 {string} string "Internal error"
+// @Failure 400 {object} main.ErrJSON "Bad request"
+// @Failure 403 {object} main.ErrJSON "Duplicate tag"
+// @Failure 500 {object} main.ErrJSON "Internal error"
 // @Router /api/upload/tag [POST]
 func uploadTag(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
@@ -280,14 +332,14 @@ func uploadTag(w http.ResponseWriter, r *http.Request) {
 	tag := Tag{}
 	err = json.Unmarshal(body, &tag)
 	if err != nil || len(tag.Name) == 0 {
-		w.WriteHeader(400)
+		writeError(errEmptyName, 400, w)
 		return
 	}
 	fmt.Printf("%+v\n", tag)
 
 	// check duplicates
 	if _, r := db.TagNameExists(tag.Name); r {
-		w.WriteHeader(403)
+		writeError("tag exists", 403, w)
 		log.Println("Not inserting tag. Already exists")
 		return
 	}
@@ -309,10 +361,10 @@ func uploadTag(w http.ResponseWriter, r *http.Request) {
 // @Param id path integer true "ID of article to modify"
 // @Param article body main.DocArticle true "Updated article data"
 // @Success 200 "Ok"
-// @Failure 400 "Bad request"
-// @Failure 404 "Article does not exist"
-// @Failure 422 "Invalid tag(s)"
-// @Failure 500 {string} string "Internal error"
+// @Failure 400 {object} main.ErrJSON "Bad request"
+// @Failure 404 {object} main.ErrJSON "Article does not exist"
+// @Failure 422 {object} main.ErrJSON "Invalid tag(s)"
+// @Failure 500 {object} main.ErrJSON "Internal error"
 // @Router /api/edit/article/{id} [POST]
 func editArticle(w http.ResponseWriter, r *http.Request) {
 	article := Article{}
@@ -325,23 +377,32 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(s, &article)
 	id2, err2 := strconv.Atoi(mux.Vars(r)["id"])
 	id := int64(id2)
-	if err != nil || err2 != nil || len(article.Name) == 0 {
-		w.WriteHeader(400)
+	if err != nil {
+		// bad article data
+		writeError("invalid article", 400, w)
+		return
+	} else if err2 != nil {
+		// bad ID
+		writeInvalidIDError(w)
+		return
+	} else if len(article.Name) == 0 {
+		writeError(errEmptyName, 400, w)
 		return
 	}
+
 	// check if article exists
 	res, err := db.ArticleByID(id)
 	if err != nil {
 		internalError("querying DB", w, err)
 		return
 	} else if res == nil {
-		w.WriteHeader(404)
+		writeNotFoundError(w)
 		return
 	}
 	// check if tags exist
 	tagIDs, exists := db.TagNamesExist(article.Tags...)
 	if !exists {
-		w.WriteHeader(422)
+		writeError(errNotAllTagsExist, 422, w)
 		return
 	}
 	// update
@@ -368,9 +429,9 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 // @Param id path integer true "ID of tag to modify"
 // @Param tag body main.DocTag true "Updated tag data"
 // @Success 200 "Ok"
-// @Failure 400 "Bad request"
-// @Failure 404 "Tag does not exist"
-// @Failure 500 {string} string "Internal error"
+// @Failure 400 {object} main.ErrJSON "Bad request"
+// @Failure 404 {object} main.ErrJSON "Tag does not exist"
+// @Failure 500 {object} main.ErrJSON "Internal error"
 // @Router /api/edit/tag/{id} [POST]
 func editTag(w http.ResponseWriter, r *http.Request) {
 	tag := Tag{}
@@ -383,17 +444,26 @@ func editTag(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(s, &tag)
 	id2, err2 := strconv.Atoi(mux.Vars(r)["id"])
 	id := int64(id2)
-	if err != nil || err2 != nil || len(tag.Name) == 0 {
-		w.WriteHeader(400)
+	if err != nil {
+		// bad article data
+		writeError("invalid article", 400, w)
+		return
+	} else if err2 != nil {
+		// bad ID
+		writeInvalidIDError(w)
+		return
+	} else if len(tag.Name) == 0 {
+		writeError(errEmptyName, 400, w)
 		return
 	}
+
 	// check if exists
 	res, err := db.TagByID(id)
 	if err != nil {
 		internalError("querying DB", w, err)
 		return
 	} else if res == nil {
-		w.WriteHeader(404)
+		writeNotFoundError(w)
 		return
 	}
 	// update
@@ -408,14 +478,14 @@ func editTag(w http.ResponseWriter, r *http.Request) {
 // @Accept  json
 // @Param id path integer true "ID of article to modify"
 // @Success 200 "Ok"
-// @Failure 400 "Bad request"
-// @Failure 404 "Tag does not exist"
-// @Failure 500 {string} string "Internal error"
+// @Failure 400 {object} main.ErrJSON "Bad request"
+// @Failure 404 {object} main.ErrJSON "Tag does not exist"
+// @Failure 500 {object} main.ErrJSON "Internal error"
 // @Router /api/del/article/{id} [GET]
 func deleteArticle(w http.ResponseWriter, r *http.Request) {
 	id2, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
-		w.WriteHeader(400)
+		writeInvalidIDError(w)
 		return
 	}
 	id := int64(id2)
@@ -424,7 +494,7 @@ func deleteArticle(w http.ResponseWriter, r *http.Request) {
 		internalError("querying DB", w, err)
 		return
 	} else if res == nil {
-		w.WriteHeader(404)
+		writeNotFoundError(w)
 		return
 	}
 	err = db.RemoveArticle(id)
@@ -443,14 +513,14 @@ func deleteArticle(w http.ResponseWriter, r *http.Request) {
 // @Accept  json
 // @Param id path integer true "ID of tag to modify"
 // @Success 200 "Ok"
-// @Failure 400 "Bad request"
-// @Failure 404 "Tag does not exist"
-// @Failure 500 {string} string "Internal error"
+// @Failure 400 {object} main.ErrJSON "Bad request"
+// @Failure 404 {object} main.ErrJSON "Tag does not exist"
+// @Failure 500 {object} main.ErrJSON "Internal error"
 // @Router /api/del/tag/{id} [GET]
 func deleteTag(w http.ResponseWriter, r *http.Request) {
 	id2, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
-		w.WriteHeader(400)
+		writeInvalidIDError(w)
 		return
 	}
 	id := int64(id2)
@@ -459,7 +529,7 @@ func deleteTag(w http.ResponseWriter, r *http.Request) {
 		internalError("querying DB", w, err)
 		return
 	} else if res == nil {
-		w.WriteHeader(404)
+		writeNotFoundError(w)
 		return
 	}
 	err = db.RemoveTag(id)
@@ -474,20 +544,13 @@ func deleteTag(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// internalError writes a 500 response to a ResponseWriter and logs an error
-func internalError(logMsg string, w http.ResponseWriter, err error) {
-	log.Println("Error", logMsg+": ", err)
-	w.WriteHeader(500)
-	w.Write([]byte(fmt.Sprintf("%v", err)))
-}
-
 // @Summary Create User
 // @Accept  json
 // @Param user body main.DocUser true "User data"
 // @Success 200 "Ok"
-// @Failure 400 "Bad request"
-// @Failure 403 "Duplicate"
-// @Failure 500 {string} string "Internal error"
+// @Failure 400 {object} main.ErrJSON "Bad request"
+// @Failure 403 {object} main.ErrJSON "Duplicate"
+// @Failure 500 {object} main.ErrJSON "Internal error"
 // @Router /api/user/create [POST]
 func userCreateHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
@@ -500,8 +563,10 @@ func userCreateHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil || len(user.Name) < UNameMinLen || len(user.Name) > UNameMaxLen || len(user.Passwd) < UPasswdMinLen || len(user.Passwd) > UNameMaxLen {
 		if err != nil {
 			log.Println("Error unmarshalling data:", err)
+			writeError("malformed request", 400, w)
+		} else {
+			writeError("invalid fields", 400, w)
 		}
-		w.WriteHeader(400)
 		return
 	}
 
@@ -510,7 +575,7 @@ func userCreateHandler(w http.ResponseWriter, r *http.Request) {
 	if u != nil {
 		// user already exists
 		// forbidden
-		w.WriteHeader(403)
+		writeError("username taken", 403, w)
 		return
 	} else if err != nil {
 		internalError("querying users", w, err)
@@ -528,9 +593,9 @@ func userCreateHandler(w http.ResponseWriter, r *http.Request) {
 // @Accept  json
 // @Param user body main.DocUser true "User data"
 // @Success 200 {object} main.User "JWT token"
-// @Failure 400 "Bad request"
-// @Failure 403 "Invalid credentials"
-// @Failure 500 {string} string "Internal error"
+// @Failure 400 {object} main.ErrJSON "Bad request"
+// @Failure 403 {object} main.ErrJSON "Invalid credentials"
+// @Failure 500 {object} main.ErrJSON "Internal error"
 // @Router /api/user/auth [POST]
 func userAuthHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
@@ -543,8 +608,10 @@ func userAuthHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil || len(user.Name) < UNameMinLen || len(user.Name) > UNameMaxLen || len(user.Passwd) < UPasswdMinLen || len(user.Passwd) > UNameMaxLen {
 		if err != nil {
 			log.Println("Error unmarshalling data:", err)
+			writeError("malformed request", 400, w)
+		} else {
+			writeError("invalid fields", 400, w)
 		}
-		w.WriteHeader(400)
 		return
 	}
 
@@ -555,7 +622,7 @@ func userAuthHandler(w http.ResponseWriter, r *http.Request) {
 	} else if u == nil || user.Name != u.Name || user.Passwd != u.Passwd {
 		// user doesn't exist.  Cannot log in
 		// forbidden
-		w.WriteHeader(403)
+		writeError("invalid", 403, w)
 		return
 	}
 
