@@ -1,4 +1,4 @@
-module praxis
+module debatabase
 
 go 1.13
 

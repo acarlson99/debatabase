@@ -1,4 +1,4 @@
-# This is a praxis
+# This is a debatabase
 
 ## Setup
 
@@ -26,7 +26,7 @@ Copyright (c) 2000, 2018, Oracle, MariaDB Corporation Ab and others.
 
 Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
 
-MariaDB [(none)]> CREATE DATABASE praxisDB;
+MariaDB [(none)]> CREATE DATABASE debatabaseDB;
 Query OK, 1 row affected (0.000 sec)
 
 MariaDB [(none)]> 

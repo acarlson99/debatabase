@@ -571,7 +571,7 @@ func printRows(rows *sql.Rows) {
 create articles table
 CREATE TABLE articles( ID INT AUTO_INCREMENT, Name VARCHAR(512), URL VARCHAR(512) NOT NULL, PRIMARY KEY (ID) );
 
-MariaDB [praxis_test_DB]> DESCRIBE articles;
+MariaDB [debatabase_test_DB]> DESCRIBE articles;
 +-------------+---------------+------+-----+---------+----------------+
 | Field       | Type          | Null | Key | Default | Extra          |
 +-------------+---------------+------+-----+---------+----------------+
@@ -587,7 +587,7 @@ MariaDB [praxis_test_DB]> DESCRIBE articles;
 tags table
 CREATE TABLE tags( ID INT AUTO_INCREMENT, Name VARCHAR(16) UNIQUE, Description VARCHAR(256), PRIMARY KEY (ID, Name) );
 
-MariaDB [praxis_test_DB]> DESCRIBE tags;
+MariaDB [debatabase_test_DB]> DESCRIBE tags;
 +-------------+--------------+------+-----+---------+----------------+
 | Field       | Type         | Null | Key | Default | Extra          |
 +-------------+--------------+------+-----+---------+----------------+
@@ -602,7 +602,7 @@ MariaDB [praxis_test_DB]> DESCRIBE tags;
 create article to tag table
 CREATE TABLE article_to_tag( ArticleID INT, TagID INT, PRIMARY KEY (ArticleID, TagID) );
 
-MariaDB [praxis_test_DB]> DESCRIBE article_to_tag;
+MariaDB [debatabase_test_DB]> DESCRIBE article_to_tag;
 +-----------+---------+------+-----+---------+-------+
 | Field     | Type    | Null | Key | Default | Extra |
 +-----------+---------+------+-----+---------+-------+
