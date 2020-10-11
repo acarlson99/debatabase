@@ -52,7 +52,7 @@ func DBMaintainConnection(uname, password, hostname, dbname string, period int) 
 
 	for {
 		_ = <-t.C
-		_, err := db.Exec("SELECT ID FROM users LIMIT 0;")
+		_, err := db.Exec("SELECT ID FROM articles LIMIT 0;")
 		if err == nil {
 			continue
 		}
@@ -98,14 +98,14 @@ func (db *DB) Init() {
 			log.Fatal(err)
 		}
 	}
-	// make sure `users` exists
-	if !db.tableExists("users") {
-		fmt.Println("DB creating table `users`...")
-		_, err := db.Exec("CREATE TABLE users( ID INT AUTO_INCREMENT, Name VARCHAR(64) UNIQUE, Password VARCHAR(256), PRIMARY KEY (ID) );")
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
+	// // make sure `users` exists
+	// if !db.tableExists("users") {
+	// 	fmt.Println("DB creating table `users`...")
+	// 	_, err := db.Exec("CREATE TABLE users( ID INT AUTO_INCREMENT, Name VARCHAR(64) UNIQUE, Password VARCHAR(256), PRIMARY KEY (ID) );")
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// }
 }
 
 func (db *DB) populate() {
@@ -498,56 +498,56 @@ func (db *DB) UpdateTag(id int64, tag Tag) error {
 	return err
 }
 
-// UnmarshalUsers unmarshalls users
-func UnmarshalUsers(rows *sql.Rows) []User {
-	users := []User{}
-	if rows == nil {
-		return users
-	}
-	for rows.Next() {
-		var id int64
-		name := ""
-		passwd := ""
+// // UnmarshalUsers unmarshalls users
+// func UnmarshalUsers(rows *sql.Rows) []User {
+// 	users := []User{}
+// 	if rows == nil {
+// 		return users
+// 	}
+// 	for rows.Next() {
+// 		var id int64
+// 		name := ""
+// 		passwd := ""
 
-		err := rows.Scan(&id, &name, &passwd)
-		if err != nil {
-			log.Println("Error unmarshalling article:", err)
-		}
-		users = append(users, User{
-			ID:     id,
-			Name:   name,
-			Passwd: passwd,
-		})
-	}
-	return users
-}
+// 		err := rows.Scan(&id, &name, &passwd)
+// 		if err != nil {
+// 			log.Println("Error unmarshalling article:", err)
+// 		}
+// 		users = append(users, User{
+// 			ID:     id,
+// 			Name:   name,
+// 			Passwd: passwd,
+// 		})
+// 	}
+// 	return users
+// }
 
-// UserByName returns a user with a name, or nil
-func (db *DB) UserByName(name string) (*User, error) {
-	s := "SELECT * FROM users WHERE Name=?;"
-	rows, err := db.Query(s, name)
-	if err != nil {
-		return nil, err
-	}
-	users := UnmarshalUsers(rows)
-	if len(users) < 1 {
-		return nil, nil
-	} else if len(users) > 1 {
-		log.Println("WARNING: multiple users with name", users)
-	}
-	return &users[0], nil
-}
+// // UserByName returns a user with a name, or nil
+// func (db *DB) UserByName(name string) (*User, error) {
+// 	s := "SELECT * FROM users WHERE Name=?;"
+// 	rows, err := db.Query(s, name)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	users := UnmarshalUsers(rows)
+// 	if len(users) < 1 {
+// 		return nil, nil
+// 	} else if len(users) > 1 {
+// 		log.Println("WARNING: multiple users with name", users)
+// 	}
+// 	return &users[0], nil
+// }
 
-// InsertUser inserts a user
-func (db *DB) InsertUser(user User) (int64, error) {
-	s := `INSERT INTO users (Name, Password) VALUES (?, ?);`
-	res, err := db.Exec(s, user.Name, user.Passwd)
-	if err != nil {
-		return 0, err
-	}
-	id, _ := res.LastInsertId()
-	return id, nil
-}
+// // InsertUser inserts a user
+// func (db *DB) InsertUser(user User) (int64, error) {
+// 	s := `INSERT INTO users (Name, Password) VALUES (?, ?);`
+// 	res, err := db.Exec(s, user.Name, user.Passwd)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+// 	id, _ := res.LastInsertId()
+// 	return id, nil
+// }
 
 // WARNING: vulnerable to SQL injection
 func (db *DB) tableExists(name string) bool {

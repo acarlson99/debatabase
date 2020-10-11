@@ -39,11 +39,11 @@ type Tag struct {
 	Description string `json:"description"`
 }
 
-type User struct {
-	ID     int64  `json:"id,omitempty"` // NOTE: only updated when removing from DB
-	Name   string `json:"name"`
-	Passwd string `json:"password"`
-}
+// type User struct {
+// 	ID     int64  `json:"id,omitempty"` // NOTE: only updated when removing from DB
+// 	Name   string `json:"name"`
+// 	Passwd string `json:"password"`
+// }
 
 // CheckEnvVars checks environment variables to make sure they are set
 func CheckEnvVars() {

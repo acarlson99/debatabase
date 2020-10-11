@@ -544,96 +544,96 @@ func deleteTag(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// @Summary Create User
-// @Accept  json
-// @Param user body main.DocUser true "User data"
-// @Success 200 "Ok"
-// @Failure 400 {object} main.ErrJSON "Bad request"
-// @Failure 403 {object} main.ErrJSON "Duplicate"
-// @Failure 500 {object} main.ErrJSON "Internal error"
-// @Router /api/user/create [POST]
-func userCreateHandler(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		internalError("reading body", w, err)
-		return
-	}
-	user := User{}
-	err = json.Unmarshal(body, &user)
-	if err != nil || len(user.Name) < UNameMinLen || len(user.Name) > UNameMaxLen || len(user.Passwd) < UPasswdMinLen || len(user.Passwd) > UNameMaxLen {
-		if err != nil {
-			log.Println("Error unmarshalling data:", err)
-			writeError("malformed request", 400, w)
-		} else {
-			writeError("invalid fields", 400, w)
-		}
-		return
-	}
+// // @Summary Create User
+// // @Accept  json
+// // @Param user body main.DocUser true "User data"
+// // @Success 200 "Ok"
+// // @Failure 400 {object} main.ErrJSON "Bad request"
+// // @Failure 403 {object} main.ErrJSON "Duplicate"
+// // @Failure 500 {object} main.ErrJSON "Internal error"
+// // @Router /api/user/create [POST]
+// func userCreateHandler(w http.ResponseWriter, r *http.Request) {
+// 	body, err := ioutil.ReadAll(r.Body)
+// 	if err != nil {
+// 		internalError("reading body", w, err)
+// 		return
+// 	}
+// 	user := User{}
+// 	err = json.Unmarshal(body, &user)
+// 	if err != nil || len(user.Name) < UNameMinLen || len(user.Name) > UNameMaxLen || len(user.Passwd) < UPasswdMinLen || len(user.Passwd) > UNameMaxLen {
+// 		if err != nil {
+// 			log.Println("Error unmarshalling data:", err)
+// 			writeError("malformed request", 400, w)
+// 		} else {
+// 			writeError("invalid fields", 400, w)
+// 		}
+// 		return
+// 	}
 
-	// no duplicates
-	u, err := db.UserByName(user.Name)
-	if u != nil {
-		// user already exists
-		// forbidden
-		writeError("username taken", 403, w)
-		return
-	} else if err != nil {
-		internalError("querying users", w, err)
-		return
-	}
+// 	// no duplicates
+// 	u, err := db.UserByName(user.Name)
+// 	if u != nil {
+// 		// user already exists
+// 		// forbidden
+// 		writeError("username taken", 403, w)
+// 		return
+// 	} else if err != nil {
+// 		internalError("querying users", w, err)
+// 		return
+// 	}
 
-	_, err = db.InsertUser(user)
-	if err != nil {
-		internalError("querying users", w, err)
-		return
-	}
-}
+// 	_, err = db.InsertUser(user)
+// 	if err != nil {
+// 		internalError("querying users", w, err)
+// 		return
+// 	}
+// }
 
-// @Summary Log in as User
-// @Accept  json
-// @Param user body main.DocUser true "User data"
-// @Success 200 {object} main.User "JWT token"
-// @Failure 400 {object} main.ErrJSON "Bad request"
-// @Failure 403 {object} main.ErrJSON "Invalid credentials"
-// @Failure 500 {object} main.ErrJSON "Internal error"
-// @Router /api/user/auth [POST]
-func userAuthHandler(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		internalError("reading body", w, err)
-		return
-	}
-	user := User{}
-	err = json.Unmarshal(body, &user)
-	if err != nil || len(user.Name) < UNameMinLen || len(user.Name) > UNameMaxLen || len(user.Passwd) < UPasswdMinLen || len(user.Passwd) > UNameMaxLen {
-		if err != nil {
-			log.Println("Error unmarshalling data:", err)
-			writeError("malformed request", 400, w)
-		} else {
-			writeError("invalid fields", 400, w)
-		}
-		return
-	}
+// // @Summary Log in as User
+// // @Accept  json
+// // @Param user body main.DocUser true "User data"
+// // @Success 200 {object} main.User "JWT token"
+// // @Failure 400 {object} main.ErrJSON "Bad request"
+// // @Failure 403 {object} main.ErrJSON "Invalid credentials"
+// // @Failure 500 {object} main.ErrJSON "Internal error"
+// // @Router /api/user/auth [POST]
+// func userAuthHandler(w http.ResponseWriter, r *http.Request) {
+// 	body, err := ioutil.ReadAll(r.Body)
+// 	if err != nil {
+// 		internalError("reading body", w, err)
+// 		return
+// 	}
+// 	user := User{}
+// 	err = json.Unmarshal(body, &user)
+// 	if err != nil || len(user.Name) < UNameMinLen || len(user.Name) > UNameMaxLen || len(user.Passwd) < UPasswdMinLen || len(user.Passwd) > UNameMaxLen {
+// 		if err != nil {
+// 			log.Println("Error unmarshalling data:", err)
+// 			writeError("malformed request", 400, w)
+// 		} else {
+// 			writeError("invalid fields", 400, w)
+// 		}
+// 		return
+// 	}
 
-	u, err := db.UserByName(user.Name)
-	if err != nil {
-		internalError("querying users", w, err)
-		return
-	} else if u == nil || user.Name != u.Name || user.Passwd != u.Passwd {
-		// user doesn't exist.  Cannot log in
-		// forbidden
-		writeError("invalid", 403, w)
-		return
-	}
+// 	u, err := db.UserByName(user.Name)
+// 	if err != nil {
+// 		internalError("querying users", w, err)
+// 		return
+// 	} else if u == nil || user.Name != u.Name || user.Passwd != u.Passwd {
+// 		// user doesn't exist.  Cannot log in
+// 		// forbidden
+// 		writeError("invalid", 403, w)
+// 		return
+// 	}
 
-	// TODO: create JWT token and write to connection
-	resp, err := json.Marshal(*u)
-	if err != nil {
-		internalError("querying users", w, err)
-		return
-	}
-	w.Write(resp)
-}
+// 	// TODO: create JWT token and write to connection
+// 	resp, err := json.Marshal(*u)
+// 	if err != nil {
+// 		internalError("querying users", w, err)
+// 		return
+// 	}
+// 	w.Write(resp)
+// }
 
 func enableCors(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -670,10 +670,10 @@ func CreateRouter(frontendStaticFiles string) *mux.Router {
 	// delete
 	r.HandleFunc("/api/del/article/{id}", deleteArticle)
 	r.HandleFunc("/api/del/tag/{id}", deleteTag)
-	// user
-	// TODO: add users
-	r.HandleFunc("/api/user/create", userCreateHandler) // creates user
-	r.HandleFunc("/api/user/auth", userAuthHandler)     // sends Json Web Token to client if uname/passwd match DB
+	// // user
+	// // TODO: add users
+	// r.HandleFunc("/api/user/create", userCreateHandler) // creates user
+	// r.HandleFunc("/api/user/auth", userAuthHandler)     // sends Json Web Token to client if uname/passwd match DB
 
 	// serve
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir(frontendStaticFiles)))
