@@ -295,6 +295,9 @@ func uploadArticle(w http.ResponseWriter, r *http.Request) {
 		writeError(errEmptyName, 400, w)
 		return
 	}
+	article.Tags = filterArr(article.Tags, func(s string) bool {
+		return len(s) > 0
+	})
 	fmt.Printf("%+v\n", article)
 
 	err = r.Body.Close()
