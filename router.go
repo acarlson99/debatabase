@@ -77,7 +77,7 @@ func internalError(logMsg string, w http.ResponseWriter, err error) {
 // @Produce json
 // @Success 200 {array} main.Article "All matching articles"
 // @Failure 500 {object} main.ErrJSON "Internal error"
-// @Router /api/search/article?articles=engine,train&limit=5&offset=5&lookslike=american&orderby=name [GET]
+// @Router /api/search/article?tags=engine,train&limit=5&offset=5&lookslike=american&orderby=name [GET]
 func searchArticle(w http.ResponseWriter, r *http.Request) {
 	parts := make(map[string]string)
 	for k, v := range r.URL.Query() {
