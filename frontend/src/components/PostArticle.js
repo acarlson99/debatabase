@@ -57,7 +57,6 @@ const PostArticle = (props) => {
           placeholder="CSV of tags"
           value={tags}
           onChange={(e) => setTags(e.target.value)}
-          required
         />
         <br />
         <button type="submit">Create Article</button>

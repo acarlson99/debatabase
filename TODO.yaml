@@ -1,4 +1,5 @@
 TODO:
+  * rate limit DB access
   * update frontend
   * add users:
     * verify user credentials on insert/edit/delete

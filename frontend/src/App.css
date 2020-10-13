@@ -14,7 +14,7 @@
   display: flex;
   flex-direction: row;
   justify-content: center;
-  width: 99vw
+  width: 99vw;
 }
 
 .Post {
@@ -31,4 +31,44 @@
 .List {
   width: 50%;
   color: white;
+}
+
+.rowC {
+  display: flex;
+  flex-direction: row;
+  align-self: "stretch";
+  text-align: "center";
+}
+
+.scroll {
+  height: 500px; /* TODO: adjust height to expand to bottom of window */
+  overflow-x: hidden;
+  overflow-y: auto;
+  text-align: center;
+  padding: 20px;
+}
+
+.ArticleSearch {
+  width: 50%;
+}
+
+.ArticleSidebar {
+  width: 50%;
+}
+
+.Article {
+  color: white;
+  border: 3px solid #1a202c;
+}
+
+.DragHandle {
+  cursor: move;
+
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Old versions of Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none; /* Non-prefixed version, currently
+                                supported by Chrome, Edge, Opera and Firefox */
 }
