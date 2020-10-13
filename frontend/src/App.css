@@ -53,7 +53,11 @@
 }
 
 .ArticleSidebar {
-  width: 50%;
+  width: 45%;
+  margin-left: auto;
+  margin-right: 5px;
+
+  outline: 3px solid black;
 }
 
 .Article {
@@ -71,4 +75,10 @@
   -ms-user-select: none; /* Internet Explorer/Edge */
   user-select: none; /* Non-prefixed version, currently
                                 supported by Chrome, Edge, Opera and Firefox */
+}
+
+.TopBar {
+  height: 50px;
+  background-color: blue;
+  width: 100%;
 }

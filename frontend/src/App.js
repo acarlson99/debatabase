@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import ArticleSearch from "./components/ArticleSearch";
 import ArticleSidebar from "./components/ArticleSidebar";
 import { ArticleListProvider } from "./contexts/ArticleList";
+import TopBar from "./components/TopBar";
 import "./App.css";
 
 /*
@@ -16,19 +17,17 @@ function App() {
 
   return (
     <div className="App">
-      <header className="App-header rowC">
-        <ArticleListProvider value={{ articles: articles, setArticles: setArticles }}>
-          <ArticleSearch />
-          <ArticleSidebar />
-        </ArticleListProvider>
-        {/* <div className="Post-div">
-          <PostTag />
-          <PostArticle />
+      <header className="App-header">
+        <TopBar />
+        <div className="articleBody rowC">
+          {/* TODO: fix height */}
+          <ArticleListProvider
+            value={{ articles: articles, setArticles: setArticles }}
+          >
+            <ArticleSearch />
+            <ArticleSidebar />
+          </ArticleListProvider>
         </div>
-        <div className="List-div">
-          <QueryServer searchType="tag" />
-          <QueryServer searchType="article" />
-        </div> */}
       </header>
     </div>
   );
