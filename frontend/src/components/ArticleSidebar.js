@@ -11,22 +11,29 @@ import ArticleListContext from "../contexts/ArticleList";
 
 const DragHandle = sortableHandle(() => <span className="DragHandle">::</span>);
 
-const SortableItem = SortableElement(({ value }) => (
+const SortableItem = SortableElement(({ value, deleteArticle }) => (
   <div className="SortableElement">
     <DragHandle />
     {JSON.stringify(value)}
+    <button onClick={deleteArticle}>-</button>
   </div>
 ));
 
-const SortableList = SortableContainer(({ items }) => {
-  return (
-    <div>
-      {items.map((value, index) => (
-        <SortableItem key={`item-${index}`} index={index} value={value} />
-      ))}
-    </div>
-  );
-});
+const SortableList = SortableContainer(({ items, deleteArticle }) => (
+  <div>
+    {items.map((value, index) => (
+      <SortableItem
+        key={`item-${index}`}
+        index={index}
+        value={value}
+        deleteArticle={() => {
+          console.log("deleting " + index);
+          deleteArticle(index);
+        }}
+      />
+    ))}
+  </div>
+));
 
 const ArticleSidebar = () => {
   const c = useContext(ArticleListContext);
@@ -36,10 +43,15 @@ const ArticleSidebar = () => {
   return (
     <div className="ArticleSidebar">
       <SortableList
-        items={articles}
-        onSortEnd={({ oldIndex, newIndex }) => {
-          setArticles(arrayMove(articles, oldIndex, newIndex));
+        deleteArticle={(i) => {
+          let newA = [...articles];
+          newA.splice(i, 1);
+          setArticles(newA);
         }}
+        items={articles}
+        onSortEnd={({ oldIndex, newIndex }) =>
+          setArticles(arrayMove(articles, oldIndex, newIndex))
+        }
         useDragHandle
       />
     </div>
