@@ -3,11 +3,13 @@
 }
 
 .App-header {
+}
+
+.App-Body {
   background-color: #282c34;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  /* justify-content: center; */
 }
 
 .Post-div {
@@ -52,6 +54,16 @@
   width: 50%;
 }
 
+.TagList {
+  height: 500px;
+  width: 200px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  text-align: left;
+  float: left;
+  outline: 3px solid black;
+}
+
 .ArticleSidebar {
   width: 45%;
   margin-left: auto;
@@ -79,6 +91,34 @@
 
 .TopBar {
   height: 50px;
-  background-color: blue;
+  background-color: rgb(63, 36, 136);
   width: 100%;
+  cursor: pointer;
+}
+
+.PresentArticleList {
+  min-width: 96%;
+  height: 75vh;
+  border: 3px solid #1a202c;
+
+  /* justify-content: center; */
+  align-items: center;
+
+  display: flex;
+  /* overflow-x: auto; */
+  /* overflow-y: hidden; */
+  text-align: center;
+  /* padding: 20px; */
+}
+
+.DivButton {
+  cursor: pointer;
+
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Old versions of Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none; /* Non-prefixed version, currently
+                                supported by Chrome, Edge, Opera and Firefox */
 }

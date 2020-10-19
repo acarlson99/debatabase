@@ -12,7 +12,7 @@ import ArticleListContext from "../contexts/ArticleList";
 const DragHandle = sortableHandle(() => <span className="DragHandle">::</span>);
 
 const SortableItem = SortableElement(({ value, deleteArticle }) => (
-  <div className="SortableElement">
+  <div className="SortableElement Article">
     <DragHandle />
     {JSON.stringify(value)}
     <button onClick={deleteArticle}>-</button>
@@ -42,6 +42,8 @@ const ArticleSidebar = () => {
 
   return (
     <div className="ArticleSidebar">
+      {/* TODO: confirm reset */}
+      <button onClick={() => setArticles([])}>clear</button>{" "}
       <SortableList
         deleteArticle={(i) => {
           let newA = [...articles];

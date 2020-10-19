@@ -1,7 +1,7 @@
 import React from "react";
 import "../App.css";
 
-const TopBar = () => {
-  return <div className="TopBar" />;
+const TopBar = ({callback}) => {
+  return <div className="TopBar" onClick={callback} />;
 };
 export default TopBar;
