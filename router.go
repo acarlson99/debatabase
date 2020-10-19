@@ -74,6 +74,7 @@ func internalError(logMsg string, w http.ResponseWriter, err error) {
 // @Param offset query integer false "Results to skip.  Does nothing unless 'limit' is specified"
 // @Param lookslike query string false "Filter for matching names/descriptions"
 // @Param orderby query string false "Field by which to order results" Enums(id, name, description)
+// @Param reverse query boolean false "Reverse search results"
 // @Produce json
 // @Success 200 {array} main.Article "All matching articles"
 // @Failure 500 {object} main.ErrJSON "Internal error"
@@ -146,6 +147,7 @@ func searchArticleID(w http.ResponseWriter, r *http.Request) {
 // @Param offset query integer false "Results to skip.  Does nothing unless 'limit' is specified"
 // @Param lookslike query string false "Filter for matching names/descriptions"
 // @Param orderby query string false "Field by which to order results" Enums(id, name, description)
+// @Param reverse query boolean false "Reverse search results"
 // @Produce json
 // @Success 200 {array} main.Tag "All matching tags"
 // @Failure 500 {object} main.ErrJSON "Internal error"
