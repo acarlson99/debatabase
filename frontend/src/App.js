@@ -45,13 +45,11 @@ function App() {
       </ArticleListProvider>
     </div>,
 
-    <div>
-      <ArticleListProvider
-        value={{ articles: articles, setArticles: setArticles }}
-      >
-        <Present />
-      </ArticleListProvider>
-    </div>,
+    <ArticleListProvider
+      value={{ articles: articles, setArticles: setArticles }}
+    >
+      <Present />
+    </ArticleListProvider>,
   ];
 
   // update cookie

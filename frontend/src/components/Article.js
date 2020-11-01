@@ -13,7 +13,7 @@ const Article = (props) => {
       {props.article.url}
       <br></br>
       {props.article.description}
-      <button
+      <button style={{ float: 'right'}}
         onClick={() => {
           setArticles([...articles, props.article]);
         }}

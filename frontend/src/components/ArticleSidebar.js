@@ -9,12 +9,16 @@ import ArticleListContext from "../contexts/ArticleList";
 
 // TODO: fix `findDOMNode` error (prolly use refs)
 
-const DragHandle = sortableHandle(() => <span className="DragHandle">::</span>);
+const DragHandle = sortableHandle(() => (
+  <div className="DragHandle noHL">::</div>
+));
 
 const SortableItem = SortableElement(({ value, deleteArticle }) => (
   <div className="SortableElement Article">
-    <DragHandle />
-    {JSON.stringify(value)}
+    <div className="rowC">
+      <DragHandle />
+      {JSON.stringify(value)}
+    </div>
     <button onClick={deleteArticle}>-</button>
   </div>
 ));
@@ -41,7 +45,7 @@ const ArticleSidebar = () => {
   const setArticles = c.setArticles;
 
   return (
-    <div className="ArticleSidebar">
+    <div className="ArticleSidebar scroll">
       {/* TODO: confirm reset */}
       <button onClick={() => setArticles([])}>clear</button>{" "}
       <SortableList

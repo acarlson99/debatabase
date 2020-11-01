@@ -6,7 +6,7 @@
 }
 
 .App-Body {
-  background-color: #282c34;
+  /* background-color: #282c34; */
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -32,22 +32,20 @@
 
 .List {
   width: 50%;
-  color: white;
+  /* color: white; */
 }
 
 .rowC {
   display: flex;
   flex-direction: row;
-  align-self: "stretch";
-  text-align: "center";
 }
 
 .scroll {
-  height: 500px; /* TODO: adjust height to expand to bottom of window */
+  /* height: 500px; /* TODO: adjust height to expand to bottom of window */
   overflow-x: hidden;
   overflow-y: auto;
   text-align: center;
-  padding: 20px;
+  /* padding: 20px; */
 }
 
 .ArticleSearch {
@@ -57,14 +55,19 @@
 .TagList {
   height: 500px;
   width: 200px;
-  overflow-x: hidden;
-  overflow-y: auto;
   text-align: left;
   float: left;
   outline: 3px solid black;
+
+  /* color: white; */
 }
 
 .ArticleSidebar {
+  align-content: flex-start;
+  text-align: left;
+
+  height: 750px;
+
   width: 45%;
   margin-left: auto;
   margin-right: 5px;
@@ -73,13 +76,12 @@
 }
 
 .Article {
-  color: white;
+  /* color: white; */
   border: 3px solid #1a202c;
+  align-self: center;
 }
 
-.DragHandle {
-  cursor: move;
-
+.noHL {
   -webkit-touch-callout: none; /* iOS Safari */
   -webkit-user-select: none; /* Safari */
   -khtml-user-select: none; /* Konqueror HTML */
@@ -87,6 +89,21 @@
   -ms-user-select: none; /* Internet Explorer/Edge */
   user-select: none; /* Non-prefixed version, currently
                                 supported by Chrome, Edge, Opera and Firefox */
+}
+
+.DragHandle {
+  cursor: move;
+
+  background: rgb(196, 137, 255);
+
+  width: 25px;
+  min-width: 25px;
+  height: 25px;
+  min-height: 25px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .TopBar {
@@ -101,24 +118,21 @@
   height: 75vh;
   border: 3px solid #1a202c;
 
-  /* justify-content: center; */
   align-items: center;
 
-  display: flex;
-  /* overflow-x: auto; */
-  /* overflow-y: hidden; */
   text-align: center;
-  /* padding: 20px; */
 }
 
 .DivButton {
   cursor: pointer;
+}
 
-  -webkit-touch-callout: none; /* iOS Safari */
-  -webkit-user-select: none; /* Safari */
-  -khtml-user-select: none; /* Konqueror HTML */
-  -moz-user-select: none; /* Old versions of Firefox */
-  -ms-user-select: none; /* Internet Explorer/Edge */
-  user-select: none; /* Non-prefixed version, currently
-                                supported by Chrome, Edge, Opera and Firefox */
+.ArticleSearchRes {
+  height: 500px;
+  width: 100%;
+  outline: 3px solid black;
+}
+
+.PresentArticle {
+  width: 80%;
 }
