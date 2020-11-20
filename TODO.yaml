@@ -1,8 +1,13 @@
 TODO:
-  * rate limit DB access
-  * update frontend
-  * add users:
-    * verify user credentials on insert/edit/delete
+  * backend:
+    * rate limit DB access
+    * add users:
+      * verify user credentials on insert/edit/delete
+  * frontend:
+    * format article queue
+    * Discord-like description formatting for presenting, better format
+    * update upload UI
+    * `edit` feature in article preview
 
 DONE:
   * make response errors print in standardized format

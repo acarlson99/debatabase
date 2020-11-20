@@ -2,6 +2,7 @@ import React, { useContext } from "react";
 import { SortableContainer,
   SortableElement,
   sortableHandle, } from "react-sortable-hoc";
+import { Link } from "react-router-dom";
 import arrayMove from "array-move";
 import ArticleListContext from "../contexts/ArticleList";
 
@@ -15,7 +16,7 @@ const SortableItem = SortableElement(({ value, deleteArticle }) => (
   <div className="SortableElement Article">
     <div className="rowC">
       <DragHandle />
-      {JSON.stringify(value)}
+      {value}
     </div>
     <button onClick={deleteArticle}>-</button>
   </div>
@@ -27,7 +28,9 @@ const SortableList = SortableContainer(({ items, deleteArticle }) => (
       <SortableItem
         key={"sortable-item" + JSON.stringify(items)}
         index={index}
-        value={value}
+        value={(() => {
+          return(<Link to={"/article/" + value.id}>{JSON.stringify(value)}</Link>);
+        })()}
         deleteArticle={() => {
           console.log("deleting " + index);
           deleteArticle(index);
