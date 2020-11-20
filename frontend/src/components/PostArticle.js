@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { SERVER_PORT, SERVER_HOST } from "../Const";
+import { SERVER_URL } from "../Const";
 
-const PostArticle = (props) => {
+// const PostArticle = (props) => {
+const PostArticle = () => {
   const [name, setName] = useState("");
   const [url, setURL] = useState("");
   const [tags, setTags] = useState("");
@@ -21,10 +22,7 @@ const PostArticle = (props) => {
           };
           console.log("POSTING TAG:", data);
           axios
-            .post(
-              `http://${SERVER_HOST}:${SERVER_PORT}/api/upload/article`,
-              JSON.stringify(data)
-            )
+            .post(`${SERVER_URL}/api/upload/article`, JSON.stringify(data))
             .then((res) => console.log("RES:", res))
             .catch((err) => console.log(err));
           setName("");

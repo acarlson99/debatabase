@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { SERVER_PORT, SERVER_HOST } from "../Const";
+import { SERVER_URL } from "../Const";
 
 const QueryServer = (props) => {
   const [articles, setArticles] = useState([]);
@@ -39,7 +39,7 @@ const QueryServer = (props) => {
         onClick={() => {
           axios
             .get(
-              `http://${SERVER_HOST}:${SERVER_PORT}/api/search/${props.searchType}?orderby=name&tags=${tags}&limit=${limit}&offset=${offset}&lookslike=${lookslike}`
+              `${SERVER_URL}/api/search/${props.searchType}?orderby=name&tags=${tags}&limit=${limit}&offset=${offset}&lookslike=${lookslike}`
             )
             .then((res) => setArticles(res.data))
             .catch((err) => console.log(err));
@@ -48,8 +48,10 @@ const QueryServer = (props) => {
         Update {props.searchType}
       </button>
       <div>
-        {articles.map((element, i) => (
-          <ul key={element.id}>{JSON.stringify(element)}</ul>
+        {articles.map((element) => (
+          <ul key={"query-res" + JSON.stringify(element)}>
+            {JSON.stringify(element)}
+          </ul>
         ))}
       </div>
     </div>

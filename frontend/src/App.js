@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { BrowserRouter as Router, Route } from "react-router-dom";
 import Cookies from "universal-cookie";
 // import PostArticle from "./components/PostArticle";
 // import PostTag from "./components/PostTag";
@@ -8,6 +9,10 @@ import ArticleSidebar from "./components/ArticleSidebar";
 import { ArticleListProvider } from "./contexts/ArticleList";
 import TopBar from "./components/TopBar";
 import Present from "./components/Present";
+import Upload from "./components/Upload";
+import ArticlePage from "./components/ArticlePage";
+import PostArticle from "./components/PostArticle";
+import PostTag from "./components/PostTag";
 import "./App.css";
 
 const cookies = new Cookies();
@@ -27,30 +32,44 @@ const loadArticles = () => {
   }
 };
 
+const Search = () => {
+  const [articles, setArticles] = useState(loadArticles());
+  return (
+    <div className="articleBody rowC">
+      <ArticleListProvider
+        value={{
+          articles: articles,
+          setArticles: setArticles,
+        }}
+      >
+        <ArticleSearch />
+        <ArticleSidebar />
+      </ArticleListProvider>
+    </div>
+  );
+};
+
+const LoadPresent = () => {
+  const [articles, setArticles] = useState(loadArticles());
+  return (
+    <ArticleListProvider
+      value={{
+        articles: articles,
+        setArticles: setArticles,
+      }}
+    >
+      <Present />
+    </ArticleListProvider>
+  );
+};
+
 /*
 need article sidebar div
 search div
 */
 function App() {
-  const [articles, setArticles] = useState(loadArticles());
-  const [page, setPage] = useState(0);
-  const arr = [
-    <div className="articleBody rowC">
-      {/* TODO: fix height */}
-      <ArticleListProvider
-        value={{ articles: articles, setArticles: setArticles }}
-      >
-        <ArticleSearch />
-        <ArticleSidebar />
-      </ArticleListProvider>
-    </div>,
-
-    <ArticleListProvider
-      value={{ articles: articles, setArticles: setArticles }}
-    >
-      <Present />
-    </ArticleListProvider>,
-  ];
+  const [articles] = useState(loadArticles());
+  // const [page, setPage] = useState(0);
 
   // update cookie
   try {
@@ -61,11 +80,18 @@ function App() {
 
   return (
     <div className="App">
-      {/* <header className="App-header"></header> */}
-      <body className="App-Body">
-        <TopBar callback={() => setPage((page + 1) % arr.length)} />
-        {arr[page % arr.length]}
-      </body>
+      <Router>
+        {/* <header className="App-header"></header> */}
+        <body className="App-Body">
+          <TopBar />
+          <Route exact path="/" component={Search} />
+          <Route exact path="/present" component={LoadPresent} />
+          <Route exact path="/upload/article" component={PostArticle} />
+          <Route exact path="/upload/tag" component={PostTag} />
+          <Route exact path="/upload" component={Upload} />
+          <Route path="/article" component={ArticlePage} />
+        </body>
+      </Router>
     </div>
   );
 }

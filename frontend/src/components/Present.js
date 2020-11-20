@@ -12,7 +12,9 @@ const fixURL = (s) => {
 
 const PresentArticle = ({ value }) => {
   const url = fixURL(value.url);
-  var u = { hostname: url, pathname: "" };
+  var u = {
+    hostname: url, pathname: ""
+  };
   try {
     u = new URL(url);
   } catch {

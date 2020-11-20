@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { SERVER_PORT, SERVER_HOST } from "../Const";
+import { SERVER_URL } from "../Const";
 
-const PostTag = (props) => {
+// const PostTag = (props) => {
+const PostTag = () => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
@@ -17,10 +18,7 @@ const PostTag = (props) => {
           };
           console.log("POSTING TAG:", data);
           axios
-            .post(
-              `http://${SERVER_HOST}:${SERVER_PORT}/api/upload/tag`,
-              JSON.stringify(data)
-            )
+            .post(`${SERVER_URL}/api/upload/tag`, JSON.stringify(data))
             .then((res) => console.log("RES:", res))
             .catch((err) => console.log(err));
           setName("");
@@ -40,7 +38,6 @@ const PostTag = (props) => {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           maxLength={256}
-          required
         />
         <br />
         <button type="submit">Create Tag</button>

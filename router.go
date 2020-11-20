@@ -681,6 +681,7 @@ func CreateRouter(frontendStaticFiles string) *mux.Router {
 	// r.HandleFunc("/api/user/auth", userAuthHandler)     // sends Json Web Token to client if uname/passwd match DB
 
 	// serve
+	// TODO: fix serving, serve only `index.html` with valid path (/search /present etc.)
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir(frontendStaticFiles)))
 	return r
 }

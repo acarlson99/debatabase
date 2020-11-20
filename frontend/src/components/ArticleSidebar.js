@@ -1,9 +1,7 @@
 import React, { useContext } from "react";
-import {
-  SortableContainer,
+import { SortableContainer,
   SortableElement,
-  sortableHandle,
-} from "react-sortable-hoc";
+  sortableHandle, } from "react-sortable-hoc";
 import arrayMove from "array-move";
 import ArticleListContext from "../contexts/ArticleList";
 
@@ -27,7 +25,7 @@ const SortableList = SortableContainer(({ items, deleteArticle }) => (
   <div>
     {items.map((value, index) => (
       <SortableItem
-        key={`item-${index}`}
+        key={"sortable-item" + JSON.stringify(items)}
         index={index}
         value={value}
         deleteArticle={() => {

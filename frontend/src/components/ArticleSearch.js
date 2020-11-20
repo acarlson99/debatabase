@@ -1,24 +1,52 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { SERVER_PORT, SERVER_HOST } from "../Const";
-import Article from "./Article.js";
 import "../App.css";
 
+import axios from "axios";
+import React, { useEffect, useState } from "react";
+import ReactTooltip from "react-tooltip";
+
+import { SERVER_URL } from "../Const";
+
+import Article from "./Article.js";
+
 const genTagList = (tags, checkedTags, setCheckedTags) => {
+  console.log(tags);
   if (tags !== undefined) {
-    return tags.map((tag, i) => (
-      <div>
-        <input
-          type="checkbox"
-          onClick={() => {
-            let nc = { ...checkedTags };
-            nc[tag.name] ^= true;
-            setCheckedTags(nc);
-          }}
-        />
-        {tag.name}
-      </div>
-    ));
+    return tags.map((tag, i) => {
+      let desc = "N/A";
+
+      if (tag.description.length > 0) {
+        desc = tag.description;
+      }
+
+      const bkgs = ["#E8EEF2", "#D6C9C9"];
+
+      return (
+        <div
+          key={"tag-" + JSON.stringify(tag)}
+          className="rowC"
+          style={{ backgroundColor: bkgs[i % bkgs.length] }}
+        >
+          <input
+            type="checkbox"
+            onClick={() => {
+              let nc = { ...checkedTags };
+              nc[tag.name] ^= true;
+              setCheckedTags(nc);
+            }}
+          />
+          <span
+            data-tip
+            data-for={"tag-" + tag.id}
+            style={{ minWidth: "100%" }}
+          >
+            {tag.name}
+          </span>
+          <ReactTooltip id={"tag-" + tag.id} place="right" effect="solid">
+            {desc}
+          </ReactTooltip>
+        </div>
+      );
+    });
   } else {
     return <div className="QueryError">ERROR QUERYING TAGS</div>;
   }
@@ -32,7 +60,7 @@ const ArticleSearch = () => {
 
   useEffect(() => {
     axios
-      .get(`http://${SERVER_HOST}:${SERVER_PORT}/api/search/tag`)
+      .get(`${SERVER_URL}/api/search/tag?orderby=name`)
       .then((res) => {
         console.log("retrieved tags");
         setTags(res.data);
@@ -44,11 +72,13 @@ const ArticleSearch = () => {
   }, []);
 
   // TODO: add search options (checkbox list of tags, lookslike, etc.)
-  let makeSearch = () => {
+  let makeSearch = (e) => {
+    e.preventDefault();
+
     let ct = Object.keys(checkedTags).filter((k) => checkedTags[k]);
     axios
       .get(
-        `http://${SERVER_HOST}:${SERVER_PORT}/api/search/article/?orderby=name&tags=${ct}&lookslike=${searchTerm}`
+        `${SERVER_URL}/api/search/article/?orderby=name&tags=${ct}&lookslike=${searchTerm}`
       )
       .then((res) => {
         setArticles(res.data);
@@ -58,16 +88,11 @@ const ArticleSearch = () => {
 
   return (
     <div className="ArticleSearch">
-      <div>
+      <form onSubmit={makeSearch}>
         <input
           placeholder="search"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          onKeyUp={(e) => {
-            if (e.key === "Enter") {
-              makeSearch();
-            }
-          }}
           required
         />
         <button onClick={makeSearch} type="submit">
@@ -75,15 +100,18 @@ const ArticleSearch = () => {
             🔎
           </span>
         </button>
-      </div>
+      </form>
       <br />
       <div className="rowC">
         <div className="TagList scroll">
           {genTagList(tags, checkedTags, setCheckedTags)}
         </div>
         <div className="ArticleSearchRes scroll">
-          {articles.map((element, i) => (
-            <Article article={element} />
+          {articles.map((element) => (
+            <Article
+              key={"article-" + JSON.stringify(element)}
+              article={element}
+            />
           ))}
         </div>
       </div>
