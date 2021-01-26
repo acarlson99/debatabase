@@ -1,6 +1,7 @@
 TODO:
   * backend:
     * rate limit DB access
+    * add images
     * add users:
       * verify user credentials on insert/edit/delete
   * frontend:
@@ -8,6 +9,8 @@ TODO:
     * Discord-like description formatting for presenting, better format
     * update upload UI
     * `edit` feature in article preview
+    * use local storage (big brain, smart, clever) instead of cookies (smooth brain, yucky, silly)
+    * image support
 
 DONE:
   * make response errors print in standardized format
