@@ -25,18 +25,36 @@ var (
 	db       *DB
 )
 
-type Article struct {
-	ID          int64    `json:"id,omitempty"` // NOTE: only updated when removing from DB
-	Name        string   `json:"name"`
-	URL         string   `json:"url"`
-	Description string   `json:"description"`
-	Tags        []string `json:"tags"`
+type DBArticle struct {
+	ID          int64  `json:"id,omitempty" example:"1"`
+	Name        string `json:"name" maximum:"512" example:"google"`
+	URL         string `json:"url" maximum:"512" example:"google.com"`
+	Description string `json:"description" maximum:"1024" example:"a popular search engine"`
+	// List of tag names
+	Tags []string `json:"tags" example:"engine,search,browser"`
+	// This is a list of filenames to be queried via other endpoint
+	Images []string `json:"images" example:"a.png, evidence1.png, metal-beams.jpg"` // NOTE: limit of 4
 }
 
-type Tag struct {
-	ID          int64  `json:"id,omitempty"` // NOTE: only updated when removing from DB
-	Name        string `json:"name"`
-	Description string `json:"description"`
+type UploadArticle struct {
+	Name        string   `json:"name" maximum:"512" example:"google"`
+	URL         string   `json:"url" maximum:"512" example:"google.com"`
+	Description string   `json:"description" maximum:"1024" example:"a popular search engine"`
+	Tags        []string `json:"tags" example:"engine,search,browser"`
+	Images      []string `json:"images" format:"base64" example:"dGhpcyBpcyBhbiBpbWFnZQo=,dGhpcyBpcyBhbm90aGVyIGltYWdlCg==,d293Cg=="` // NOTE: limit of 4, will be truncated
+}
+
+type DBTag struct {
+	ID          int64  `json:"id,omitempty" example:"1"`
+	Name        string `json:"name" maximum:"16" example:"engine"`
+	Description string `json:"description" maximum:"256" example:"a machine designed to convert one form of energy into mechanical energy"`
+	// Name        string `json:"name"`
+	// Description string `json:"description"`
+}
+
+type UploadTag struct {
+	Name        string `json:"name" maximum:"16" example:"engine"`
+	Description string `json:"description" maximum:"256" example:"a machine designed to convert one form of energy into mechanical energy"`
 }
 
 // type User struct {
@@ -59,9 +77,9 @@ func CheckEnvVars() {
 // @title DB
 // @version 1.0
 // @description Debatabase
-// @securityDefinitions.apikey Bearer
-// @in header
-// @name Authorization
+// // @securityDefinitions.apikey Bearer
+// // @in header
+// // @name Authorization
 func main() {
 
 	if os.Getenv("APP_ENV") == "production" {

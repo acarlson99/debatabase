@@ -23,6 +23,7 @@ const (
 	errNotAllTagsExist = "not all tags exist"
 )
 
+// ErrJSON is an error message to be sent as response to request
 type ErrJSON struct {
 	Code  int    `json:"code,omitempty"`
 	Msg   string `json:"message,omitempty"`
@@ -68,7 +69,7 @@ func internalError(logMsg string, w http.ResponseWriter, err error) {
 	w.Write(s)
 }
 
-// @Summary Search articles by name
+// @Summary Search articles
 // @Param tags query string false "Tag names" collectionFormat(csv)
 // @Param limit query integer false "Maximum number of results"
 // @Param offset query integer false "Results to skip.  Does nothing unless 'limit' is specified"
@@ -76,7 +77,7 @@ func internalError(logMsg string, w http.ResponseWriter, err error) {
 // @Param orderby query string false "Field by which to order results" Enums(id, name, description)
 // @Param reverse query boolean false "Reverse search results"
 // @Produce json
-// @Success 200 {array} main.Article "All matching articles"
+// @Success 200 {array} main.DBArticle "All matching articles"
 // @Failure 500 {object} main.ErrJSON "Internal error"
 // @Router /api/search/article?tags=engine,train&limit=5&offset=5&lookslike=american&orderby=name [GET]
 func searchArticle(w http.ResponseWriter, r *http.Request) {
@@ -110,10 +111,10 @@ func searchArticle(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
-// @Summary Search articles by name
+// @Summary Search articles by ID
 // @Param id path integer false "Filter by ID"
 // @Produce json
-// @Success 200 {object} main.Article "All matching articles"
+// @Success 200 {object} main.DBArticle "All matching articles"
 // @Failure 400 {object} main.ErrJSON "Bad request"
 // @Failure 404 {object} main.ErrJSON "Article not found"
 // @Failure 500 {object} main.ErrJSON string "Internal error"
@@ -141,7 +142,7 @@ func searchArticleID(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
-// @Summary Search tags by name
+// @Summary Search tags
 // @Param tags query string false "Tag names" collectionFormat(csv)
 // @Param limit query integer false "Maximum number of results"
 // @Param offset query integer false "Results to skip.  Does nothing unless 'limit' is specified"
@@ -149,7 +150,7 @@ func searchArticleID(w http.ResponseWriter, r *http.Request) {
 // @Param orderby query string false "Field by which to order results" Enums(id, name, description)
 // @Param reverse query boolean false "Reverse search results"
 // @Produce json
-// @Success 200 {array} main.Tag "All matching tags"
+// @Success 200 {array} main.DBTag "All matching tags"
 // @Failure 500 {object} main.ErrJSON "Internal error"
 // @Router /api/search/tag?tags=engine,train&limit=5&offset=5&lookslike=american&orderby=name [GET]
 func searchTag(w http.ResponseWriter, r *http.Request) {
@@ -183,10 +184,10 @@ func searchTag(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
-// @Summary Search tags by name
+// @Summary Search tags by ID
 // @Param id path integer false "Filter by ID"
 // @Produce json
-// @Success 200 {object} main.Tag "All matching tags"
+// @Success 200 {object} main.DBTag "All matching tags"
 // @Failure 400 {object} main.ErrJSON "Bad request"
 // @Failure 404 {object} main.ErrJSON "Tag not found"
 // @Failure 500 {object} main.ErrJSON "Internal error"
@@ -228,7 +229,7 @@ func uploadCSVArticle(w http.ResponseWriter, r *http.Request) {
 			log.Println("BAD NUMNER OF FIELDS")
 			continue
 		}
-		a := Article{
+		a := UploadArticle{
 			Name:        fields[0],
 			URL:         fields[1],
 			Description: fields[2],
@@ -259,7 +260,7 @@ func uploadCSVTag(w http.ResponseWriter, r *http.Request) {
 			log.Println("BAD NUMNER OF FIELDS")
 			continue
 		}
-		t := Tag{
+		t := UploadTag{
 			Name:        fields[0],
 			Description: fields[1],
 		}
@@ -276,7 +277,7 @@ func uploadCSVTag(w http.ResponseWriter, r *http.Request) {
 
 // @Summary Create Article
 // @Accept json
-// @Param tag body main.DocArticle true "Article data"
+// @Param tag body main.UploadArticle true "Article data"
 // @Success 200 "Ok"
 // @Failure 400 {object} main.ErrJSON "Bad request"
 // @Failure 422 {object} main.ErrJSON "Invalid tag(s)"
@@ -288,7 +289,7 @@ func uploadArticle(w http.ResponseWriter, r *http.Request) {
 		internalError("reading body", w, err)
 		return
 	}
-	article := Article{}
+	article := UploadArticle{}
 	err = json.Unmarshal(body, &article)
 	if err != nil || len(article.Name) == 0 {
 		if err != nil {
@@ -322,7 +323,7 @@ func uploadArticle(w http.ResponseWriter, r *http.Request) {
 
 // @Summary Create Tag
 // @Accept  json
-// @Param tag body main.DocTag true "Tag data"
+// @Param tag body main.UploadTag true "Tag data"
 // @Success 200 "Ok"
 // @Failure 400 {object} main.ErrJSON "Bad request"
 // @Failure 403 {object} main.ErrJSON "Duplicate tag"
@@ -334,7 +335,7 @@ func uploadTag(w http.ResponseWriter, r *http.Request) {
 		internalError("reading body", w, err)
 		return
 	}
-	tag := Tag{}
+	tag := UploadTag{}
 	err = json.Unmarshal(body, &tag)
 	if err != nil || len(tag.Name) == 0 {
 		writeError(errEmptyName, 400, w)
@@ -364,7 +365,7 @@ func uploadTag(w http.ResponseWriter, r *http.Request) {
 // @Summary Modify Article
 // @Accept  json
 // @Param id path integer true "ID of article to modify"
-// @Param article body main.DocArticle true "Updated article data"
+// @Param article body main.UploadArticle true "Updated article data"
 // @Success 200 "Ok"
 // @Failure 400 {object} main.ErrJSON "Bad request"
 // @Failure 404 {object} main.ErrJSON "Article does not exist"
@@ -372,7 +373,7 @@ func uploadTag(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} main.ErrJSON "Internal error"
 // @Router /api/edit/article/{id} [POST]
 func editArticle(w http.ResponseWriter, r *http.Request) {
-	article := Article{}
+	article := UploadArticle{}
 	s, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		internalError("reading body", w, err)
@@ -432,14 +433,14 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 // @Summary Modify Tag
 // @Accept  json
 // @Param id path integer true "ID of tag to modify"
-// @Param tag body main.DocTag true "Updated tag data"
+// @Param tag body main.UploadTag true "Updated tag data"
 // @Success 200 "Ok"
 // @Failure 400 {object} main.ErrJSON "Bad request"
 // @Failure 404 {object} main.ErrJSON "Tag does not exist"
 // @Failure 500 {object} main.ErrJSON "Internal error"
 // @Router /api/edit/tag/{id} [POST]
 func editTag(w http.ResponseWriter, r *http.Request) {
-	tag := Tag{}
+	tag := UploadTag{}
 	s, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		internalError("reading body", w, err)
