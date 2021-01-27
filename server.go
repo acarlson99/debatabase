@@ -41,13 +41,21 @@ type DBArticle struct {
 	Images []string `json:"images" example:"a.png, evidence1.png, metal-beams.jpg"` // NOTE: limit of 4
 }
 
+// Image is an image format and Base64 representation of image
+type Image struct {
+	// Base64 encoded image data
+	Data string `json:"data" format:"base64" example:"dGhpcyBpcyBhbiBpbWFnZQo="`
+	// Image format (PNG,JPG,etc.)
+	Format string `json:"format" example:"png"`
+}
+
 // UploadArticle is a representation of an article sent from frontend to be uploaded to MySQL DB
 type UploadArticle struct {
 	Name        string   `json:"name" maximum:"512" example:"google"`
 	URL         string   `json:"url" maximum:"512" example:"google.com"`
 	Description string   `json:"description" maximum:"1024" example:"a popular search engine"`
 	Tags        []string `json:"tags" example:"engine,search,browser"`
-	Images      []string `json:"images" format:"base64" example:"dGhpcyBpcyBhbiBpbWFnZQo=,dGhpcyBpcyBhbm90aGVyIGltYWdlCg==,d293Cg=="` // NOTE: limit of 4, will be truncated
+	Images      []Image  `json:"images"`
 }
 
 // DBTag is a representation of a tag from MySQL DB
