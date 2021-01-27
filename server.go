@@ -38,7 +38,7 @@ type DBArticle struct {
 	// List of tag names
 	Tags []string `json:"tags" example:"engine,search,browser"`
 	// This is a list of filenames to be queried via other endpoint
-	Images []string `json:"images" example:"a.png, evidence1.png, metal-beams.jpg"` // NOTE: limit of 4
+	Images []string `json:"images" maxItems:"4" example:"a.png, evidence1.png, metal-beams.jpg"` // NOTE: limit of 4
 }
 
 // Image is an image format and Base64 representation of image
@@ -46,7 +46,8 @@ type Image struct {
 	// Base64 encoded image data
 	Data string `json:"data" format:"base64" example:"dGhpcyBpcyBhbiBpbWFnZQo="`
 	// Image format (PNG,JPG,etc.)
-	Format string `json:"format" example:"png"`
+	Format   string `json:"format" example:"png"`
+	Filename string `swaggerignore:"true"`
 }
 
 // UploadArticle is a representation of an article sent from frontend to be uploaded to MySQL DB
@@ -55,7 +56,7 @@ type UploadArticle struct {
 	URL         string   `json:"url" maximum:"512" example:"google.com"`
 	Description string   `json:"description" maximum:"1024" example:"a popular search engine"`
 	Tags        []string `json:"tags" example:"engine,search,browser"`
-	Images      []Image  `json:"images"`
+	Images      []Image  `json:"images" maxItems:"4"`
 }
 
 // DBTag is a representation of a tag from MySQL DB
@@ -75,8 +76,8 @@ type UploadTag struct {
 
 // type User struct {
 // 	ID     int64  `json:"id,omitempty"` // NOTE: only updated when removing from DB
-// 	Name   string `json:"name"`
-// 	Passwd string `json:"password"`
+// 	Name   string `json:"name" minLength:"3" maxLength:"30"`
+// 	Passwd string `json:"password" minLength:"5" maxLength:"50"`
 // }
 
 // CheckEnvVars checks environment variables to make sure they are set
@@ -135,6 +136,7 @@ func main() {
 	}
 	if !ok {
 		fmt.Println("WARNING: `FILES_TO_SERVE` does not end in `/build/` or `/static/`")
+		fmt.Println("FILES_TO_SERVE:", serveLocation)
 		fmt.Println("Are you sure you would like to continue? [y/n]")
 		input := ""
 		fmt.Scanln(&input)
