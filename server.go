@@ -13,9 +13,13 @@ import (
 )
 
 const (
-	UNameMinLen   = 3
-	UNameMaxLen   = 30
+	// UNameMinLen is min length of username
+	UNameMinLen = 3
+	// UNameMaxLen is max length of username
+	UNameMaxLen = 30
+	// UPasswdMinLen is min length of password
 	UPasswdMinLen = 5
+	// UPasswdMaxLen is max length of password
 	UPasswdMaxLen = 50
 )
 
@@ -25,6 +29,7 @@ var (
 	db       *DB
 )
 
+// DBArticle is a representation of an article from MySQL DB
 type DBArticle struct {
 	ID          int64  `json:"id,omitempty" example:"1"`
 	Name        string `json:"name" maximum:"512" example:"google"`
@@ -36,6 +41,7 @@ type DBArticle struct {
 	Images []string `json:"images" example:"a.png, evidence1.png, metal-beams.jpg"` // NOTE: limit of 4
 }
 
+// UploadArticle is a representation of an article sent from frontend to be uploaded to MySQL DB
 type UploadArticle struct {
 	Name        string   `json:"name" maximum:"512" example:"google"`
 	URL         string   `json:"url" maximum:"512" example:"google.com"`
@@ -44,6 +50,7 @@ type UploadArticle struct {
 	Images      []string `json:"images" format:"base64" example:"dGhpcyBpcyBhbiBpbWFnZQo=,dGhpcyBpcyBhbm90aGVyIGltYWdlCg==,d293Cg=="` // NOTE: limit of 4, will be truncated
 }
 
+// DBTag is a representation of a tag from MySQL DB
 type DBTag struct {
 	ID          int64  `json:"id,omitempty" example:"1"`
 	Name        string `json:"name" maximum:"16" example:"engine"`
@@ -52,6 +59,7 @@ type DBTag struct {
 	// Description string `json:"description"`
 }
 
+// UploadTag is a representation of a tag sent from frontend to be uploaded to MySQL DB
 type UploadTag struct {
 	Name        string `json:"name" maximum:"16" example:"engine"`
 	Description string `json:"description" maximum:"256" example:"a machine designed to convert one form of energy into mechanical energy"`
