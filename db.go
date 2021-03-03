@@ -77,7 +77,8 @@ func (db *DB) Init() {
 	fmt.Println("Initializing database...")
 	if !db.tableExists("articles") {
 		fmt.Println("DB creating table `articles`...")
-		_, err := db.Exec("CREATE TABLE articles( ID INT AUTO_INCREMENT, Name VARCHAR(512) NOT NULL, URL VARCHAR(512), Description VARCHAR(1024), PRIMARY KEY (ID) );")
+		_, err := db.Exec(
+			"CREATE TABLE articles( ID INT AUTO_INCREMENT, Name VARCHAR(512) NOT NULL, URL VARCHAR(512), Description VARCHAR(1024), Img1 VARCHAR(32), Img2 VARCHAR(32), Img3 VARCHAR(32), Img4 VARCHAR(32), PRIMARY KEY (ID) );")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -85,7 +86,8 @@ func (db *DB) Init() {
 	// make sure `tags` exists
 	if !db.tableExists("tags") {
 		fmt.Println("DB creating table `tags`...")
-		_, err := db.Exec("CREATE TABLE tags( ID INT AUTO_INCREMENT, Name VARCHAR(16) UNIQUE, Description VARCHAR(256), PRIMARY KEY (ID, Name) );")
+		_, err := db.Exec(
+			"CREATE TABLE tags( ID INT AUTO_INCREMENT, Name VARCHAR(16) UNIQUE, Description VARCHAR(256), PRIMARY KEY (ID, Name) );")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -93,7 +95,8 @@ func (db *DB) Init() {
 	// make sure `article_to_tag` exists
 	if !db.tableExists("article_to_tag") {
 		fmt.Println("DB creating table `article_to_tag`...")
-		_, err := db.Exec("CREATE TABLE article_to_tag( ArticleID INT, TagID INT, PRIMARY KEY (ArticleID, TagID) );")
+		_, err := db.Exec(
+			"CREATE TABLE article_to_tag( ArticleID INT, TagID INT, PRIMARY KEY (ArticleID, TagID) );")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -108,14 +111,14 @@ func (db *DB) Init() {
 	// }
 }
 
-func (db *DB) populate() {
-	db.Exec(`INSERT INTO articles (URL) VALUES ("google.com/");`)
-	db.Exec(`INSERT INTO tags (Name, Description) VALUES ("google", "it's google my duderino");`)
-	db.Exec(`INSERT INTO tags (Name) VALUES ("search_engine");`)
-	db.Exec(`INSERT INTO tags (Name) VALUES ("frogs");`)
-	db.Exec(`INSERT INTO article_to_tag (ArticleID, TagID) VALUES (1,1);`)
-	db.Exec(`INSERT INTO article_to_tag (ArticleID, TagID) VALUES (1,2);`)
-}
+// func (db *DB) populate() {
+// 	db.Exec(`INSERT INTO articles (URL) VALUES ("google.com/");`)
+// 	db.Exec(`INSERT INTO tags (Name, Description) VALUES ("google", "it's google my duderino");`)
+// 	db.Exec(`INSERT INTO tags (Name) VALUES ("search_engine");`)
+// 	db.Exec(`INSERT INTO tags (Name) VALUES ("frogs");`)
+// 	db.Exec(`INSERT INTO article_to_tag (ArticleID, TagID) VALUES (1,1);`)
+// 	db.Exec(`INSERT INTO article_to_tag (ArticleID, TagID) VALUES (1,2);`)
+// }
 
 // TagNameExists checks if a tag named `s` exists in a database, returning the tag ID && true/false
 func (db *DB) TagNameExists(s string) (int64, bool) {
@@ -200,17 +203,27 @@ func UnmarshalArticles(rows *sql.Rows) []DBArticle {
 		name := ""
 		var url sql.NullString
 		var desc sql.NullString
+		var imgFilenames [4]sql.NullString
 
-		err := rows.Scan(&id, &name, &url, &desc)
+		err := rows.Scan(&id, &name, &url, &desc,
+			&imgFilenames[0], &imgFilenames[1],
+			&imgFilenames[2], &imgFilenames[3])
 		if err != nil {
 			log.Println("Error unmarshalling article:", err)
 		}
-		articles = append(articles, DBArticle{
+		article := DBArticle{
 			ID:          id,
 			Name:        name,
 			URL:         nullStringToString(url),
 			Description: nullStringToString(desc),
-		})
+		}
+		// add existing img filenames to article
+		for _, v := range imgFilenames {
+			if v.Valid {
+				article.Images = append(article.Images, v.String)
+			}
+		}
+		articles = append(articles, article)
 	}
 	return articles
 }
@@ -395,7 +408,9 @@ func (db *DB) TagByID(id int64) (*DBTag, error) {
 
 // InsertArticleTag links an article to a tag, returning ID of inserted element
 func (db *DB) InsertArticleTag(articleID int64, tagID int64) (int64, error) {
-	res, err := db.Exec("INSERT INTO article_to_tag (ArticleID, TagID) VALUES (?, ?);", articleID, tagID)
+	res, err := db.Exec(
+		"INSERT INTO article_to_tag (ArticleID, TagID) VALUES (?, ?);",
+		articleID, tagID)
 	if err != nil {
 		return 0, err
 	}
@@ -423,7 +438,20 @@ func (db *DB) InsertArticleTags(id int64, tagIDs []int64) error {
 
 // InsertArticle inserts an article into a DB, linking tags if they exist and returning the article's ID, returning ID of inserted element
 func (db *DB) InsertArticle(a UploadArticle) (int64, error) {
-	res, err := db.Exec("INSERT INTO articles (Name, URL, Description) VALUES (?, ?, ?);", stringOrNil(a.Name), stringOrNil(a.URL), stringOrNil(a.Description))
+	var imgFilenames [4]string
+
+	for ii, img := range a.Images {
+		if ii >= 4 {
+			break
+		}
+		imgFilenames[ii] = img.Filename
+	}
+
+	res, err := db.Exec(
+		`INSERT INTO articles (Name, URL, Description, Img1, Img2, Img3, Img4) VALUES (?, ?, ?, ?, ?, ?, ?);`,
+		stringOrNil(a.Name), stringOrNil(a.URL), stringOrNil(a.Description),
+		stringOrNil(imgFilenames[0]), stringOrNil(imgFilenames[1]),
+		stringOrNil(imgFilenames[2]), stringOrNil(imgFilenames[3]))
 
 	if err != nil {
 		return 0, err
@@ -443,7 +471,8 @@ func (db *DB) InsertArticle(a UploadArticle) (int64, error) {
 
 // InsertTag inserts a tag into a DB, returning ID of inserted element
 func (db *DB) InsertTag(t UploadTag) (int64, error) {
-	res, err := db.Exec("INSERT INTO tags (Name, Description) VALUES (?, ?);", stringOrNil(t.Name), stringOrNil(t.Description))
+	res, err := db.Exec("INSERT INTO tags (Name, Description) VALUES (?, ?);",
+		stringOrNil(t.Name), stringOrNil(t.Description))
 
 	if err != nil {
 		return 0, err
@@ -487,14 +516,16 @@ func (db *DB) RemoveTag(id int64) error {
 // UpdateArticle updates an article's information, BUT NOT TAGS
 func (db *DB) UpdateArticle(id int64, article UploadArticle) error {
 	s := "UPDATE articles SET Name=?, URL=?, Description=? WHERE ID=?;"
-	_, err := db.Exec(s, stringOrNil(article.Name), stringOrNil(article.URL), stringOrNil(article.Description), id)
+	_, err := db.Exec(s, stringOrNil(article.Name), stringOrNil(article.URL),
+		stringOrNil(article.Description), id)
 	return err
 }
 
 // UpdateTag updates a tag's information
 func (db *DB) UpdateTag(id int64, tag UploadTag) error {
 	s := "UPDATE tags SET Name=?, Description=? WHERE ID=?;"
-	_, err := db.Exec(s, stringOrNil(tag.Name), stringOrNil(tag.Description), id)
+	_, err := db.Exec(s, stringOrNil(tag.Name),
+		stringOrNil(tag.Description), id)
 	return err
 }
 

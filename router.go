@@ -18,9 +18,14 @@ import (
 
 const (
 	errEmptyName       = "name field empty"
+	errCannotParse     = "unable to parse data"
 	errInvalidID       = "invalid id"
 	errIDNotFound      = "id not found"
 	errNotAllTagsExist = "not all tags exist"
+)
+
+var (
+	constructUniqueFilename func(string) (string, error)
 )
 
 // ErrJSON is an error message to be sent as response to request
@@ -81,6 +86,7 @@ func internalError(logMsg string, w http.ResponseWriter, err error) {
 // @Failure 500 {object} main.ErrJSON "Internal error"
 // @Router /api/search/article?tags=engine,train&limit=5&offset=5&lookslike=american&orderby=name [GET]
 func searchArticle(w http.ResponseWriter, r *http.Request) {
+	// TODO: add support for image names
 	parts := make(map[string]string)
 	for k, v := range r.URL.Query() {
 		parts[k] = v[0]
@@ -120,6 +126,7 @@ func searchArticle(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} main.ErrJSON string "Internal error"
 // @Router /api/search/article/{id} [GET]
 func searchArticleID(w http.ResponseWriter, r *http.Request) {
+	// TODO: add support for image names
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		writeInvalidIDError(w)
@@ -294,6 +301,8 @@ func uploadArticle(w http.ResponseWriter, r *http.Request) {
 	if err != nil || len(article.Name) == 0 {
 		if err != nil {
 			log.Println("Error unmarshalling data:", err)
+			writeError(errCannotParse, 400, w)
+			return
 		}
 		writeError(errEmptyName, 400, w)
 		return
@@ -301,6 +310,7 @@ func uploadArticle(w http.ResponseWriter, r *http.Request) {
 	article.Tags = filterArr(article.Tags, func(s string) bool {
 		return len(s) > 0
 	})
+	article.Images = article.Images[:min(len(article.Images), 4)] // truncate image list
 	fmt.Printf("%+v\n", article)
 
 	err = r.Body.Close()
@@ -314,7 +324,16 @@ func uploadArticle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = db.InsertArticle(article)
+	// check if MD5 hashed image.Data exists in DB, if it does just use that
+	// otherwise store images in files
+	// populate article.Images with filenames
+	// insert filenames into DB with article
+	for ii := range article.Images {
+		article.Images[ii].Filename, err = constructUniqueFilename(article.Images[ii].Format)
+		SaveImgToFile(article.Images[ii])
+	}
+
+	_, err = db.InsertArticle(article) // TODO: insert img filenames into DB
 	if err != nil {
 		internalError("inserting article", w, err)
 		return
@@ -338,6 +357,11 @@ func uploadTag(w http.ResponseWriter, r *http.Request) {
 	tag := UploadTag{}
 	err = json.Unmarshal(body, &tag)
 	if err != nil || len(tag.Name) == 0 {
+		if err != nil {
+			log.Println("Error unmarshalling data:", err)
+			writeError(errCannotParse, 400, w)
+			return
+		}
 		writeError(errEmptyName, 400, w)
 		return
 	}
@@ -365,7 +389,6 @@ func uploadTag(w http.ResponseWriter, r *http.Request) {
 // @Summary Modify Article
 // @Accept  json
 // @Param id path integer true "ID of article to modify"
-// @Param article body main.UploadArticle true "Updated article data"
 // @Success 200 "Ok"
 // @Failure 400 {object} main.ErrJSON "Bad request"
 // @Failure 404 {object} main.ErrJSON "Article does not exist"
@@ -373,6 +396,7 @@ func uploadTag(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} main.ErrJSON "Internal error"
 // @Router /api/edit/article/{id} [POST]
 func editArticle(w http.ResponseWriter, r *http.Request) {
+	// TODO: edit article images
 	article := UploadArticle{}
 	s, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -433,7 +457,6 @@ func editArticle(w http.ResponseWriter, r *http.Request) {
 // @Summary Modify Tag
 // @Accept  json
 // @Param id path integer true "ID of tag to modify"
-// @Param tag body main.UploadTag true "Updated tag data"
 // @Success 200 "Ok"
 // @Failure 400 {object} main.ErrJSON "Bad request"
 // @Failure 404 {object} main.ErrJSON "Tag does not exist"
@@ -489,6 +512,7 @@ func editTag(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} main.ErrJSON "Internal error"
 // @Router /api/del/article/{id} [GET]
 func deleteArticle(w http.ResponseWriter, r *http.Request) {
+	// TODO: remove article images when article removed
 	id2, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		writeInvalidIDError(w)
@@ -650,6 +674,9 @@ func enableCors(h http.Handler) http.Handler {
 
 // CreateRouter returns a new mux.Router with appropriately registered paths
 func CreateRouter(frontendStaticFiles string) *mux.Router {
+	// TODO: start generator after last used value (should be last modified -- e.g. "img0x30.ong" -- filename + 1) instead of 0
+	constructUniqueFilename = MakeUniqueFilenameGenerator(0)
+
 	r := mux.NewRouter().StrictSlash(true)
 
 	r.Use(enableCors)

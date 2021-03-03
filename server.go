@@ -83,7 +83,8 @@ type UploadTag struct {
 // CheckEnvVars checks environment variables to make sure they are set
 func CheckEnvVars() {
 	vars := []string{"APP_ENV", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_HOSTNAME",
-		"MYSQL_DBNAME", "HOST_ADDRESS", "HOST_PORT", "FILES_TO_SERVE"}
+		"MYSQL_DBNAME", "HOST_ADDRESS", "HOST_PORT", "FILES_TO_SERVE",
+		"IMG_FILE_PATH"}
 	for _, v := range vars {
 		if len(os.Getenv(v)) == 0 {
 			fmt.Println("WARNING: environment variable `" + v + "` not set")
@@ -98,7 +99,6 @@ func CheckEnvVars() {
 // // @in header
 // // @name Authorization
 func main() {
-
 	if os.Getenv("APP_ENV") == "production" {
 		fmt.Println("Running in production mode")
 	} else {

@@ -1,5 +1,7 @@
 # This is a debatabase
 
+DB to store [evidence cards](https://sbt.blob.core.windows.net/storyboards/worksheet-templates/debate-evidence-cards_thumb.png?utc=131847743138500000)
+
 ## Setup
 
 ### Dependencies

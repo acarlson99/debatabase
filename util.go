@@ -9,3 +9,10 @@ func filterArr(arr []string, f func(string) bool) []string {
 	}
 	return r
 }
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
